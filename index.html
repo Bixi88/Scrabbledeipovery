@@ -343,8 +343,7 @@
       color: #1a1a1a;
       font-weight: 900;
       font-size: 0.85rem;
-      border: 2px solid #2e7d32;
-      box-shadow: inset 0 0 0 1px rgba(46,125,50,0.4);
+      border: 1px solid #d4c090;
       z-index: 6;
     }
 
@@ -354,8 +353,23 @@
       right: 2px;
       font-size: 0.5rem;
       font-weight: 700;
-      color: #2e7d32;
+      color: #5a4a20;
       line-height: 1;
+    }
+
+    /* Cornice live che avvolge la parola in formazione: verde se valida, rossa se no.
+       Si applica sia alle tessere appena piazzate sia a quelle già confermate che fanno
+       parte della stessa parola, così l'intera parola risulta incorniciata. */
+    .cell.word-frame-valid {
+      border: 2px solid #2e7d32 !important;
+      box-shadow: inset 0 0 0 1px rgba(46,125,50,0.5);
+      z-index: 8;
+    }
+
+    .cell.word-frame-invalid {
+      border: 2px solid #c62828 !important;
+      box-shadow: inset 0 0 0 1px rgba(198,40,40,0.5);
+      z-index: 8;
     }
 
     .cell.pending.preview-end .score-bubble {
@@ -1314,7 +1328,9 @@
       headerMessageEl.textContent = `${preview.words.join(', ')}: ${preview.score} punti`;
       playBtn.disabled = false;
     } else {
-      headerMessageEl.textContent = 'Componi una parola valida...';
+      headerMessageEl.textContent = preview.error === 'Nessuna parola valida'
+        ? 'Le parole devono essere formate da almeno 2 lettere.'
+        : preview.error || 'Componi una parola valida...';
       playBtn.disabled = true;
     }
   }
@@ -1337,6 +1353,17 @@
   // ==================== RENDER ====================
   function renderBoard() {
     boardEl.innerHTML = '';
+
+    // Anteprima live della parola in formazione: celle coinvolte + validità
+    let previewInfo = null;
+    if (pendingTiles.length > 0 && turn === 'player' && !swapMode) {
+      const { cells, anchor } = computePreviewCells(pendingTiles);
+      if (cells.size > 0) {
+        const result = validateAndScoreMove(pendingTiles);
+        previewInfo = { cells, anchor, valid: result.valid, score: result.score };
+      }
+    }
+
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const cell = document.createElement('div');
@@ -1350,6 +1377,10 @@
         else if (premium === 3) cell.classList.add('dw');
         else if (premium === 4) cell.classList.add('tw');
         else if (premium === 5) cell.classList.add('star');
+
+        if (previewInfo && previewInfo.cells.has(r + ',' + c)) {
+          cell.classList.add(previewInfo.valid ? 'word-frame-valid' : 'word-frame-invalid');
+        }
 
         const pending = pendingTiles.find(t => t.row === r && t.col === c);
 
@@ -1372,16 +1403,14 @@
           ptsSpan.textContent = pts;
           cell.appendChild(ptsSpan);
 
-          // Sull'ultima tessera piazzata mostriamo il punteggio live dell'anteprima
-          if (pendingTiles[pendingTiles.length - 1] === pending) {
-            const preview = validateAndScoreMove(pendingTiles);
-            if (preview.valid) {
-              cell.classList.add('preview-end');
-              const bubble = document.createElement('span');
-              bubble.className = 'score-bubble';
-              bubble.textContent = preview.score;
-              cell.appendChild(bubble);
-            }
+          // Sull'ultima tessera piazzata mostriamo il badge col punteggio live (solo se valida)
+          if (previewInfo && previewInfo.valid && previewInfo.anchor &&
+              previewInfo.anchor[0] === r && previewInfo.anchor[1] === c) {
+            cell.classList.add('preview-end');
+            const bubble = document.createElement('span');
+            bubble.className = 'score-bubble';
+            bubble.textContent = previewInfo.score;
+            cell.appendChild(bubble);
           }
 
           attachBoardTileDrag(cell, r, c);
@@ -1833,6 +1862,55 @@
       }
     }
     return word.length > 1 ? word : '';
+  }
+
+  // Come getWordFromMove, ma restituisce le celle [riga,colonna] della parola invece del testo.
+  // Serve per disegnare la cornice colorata (verde/rossa) intorno alla parola in formazione.
+  function getWordCellsFromMove(row, col, horizontal, boardState) {
+    let cells = [];
+    let r = row, c = col;
+    if (horizontal) {
+      while (c > 0 && boardState[r][c-1] !== null) c--;
+      while (c < BOARD_SIZE && boardState[r][c] !== null) { cells.push([r, c]); c++; }
+    } else {
+      while (r > 0 && boardState[r-1][c] !== null) r--;
+      while (r < BOARD_SIZE && boardState[r][c] !== null) { cells.push([r, c]); r++; }
+    }
+    return cells.length > 1 ? cells : [];
+  }
+
+  // Calcola l'insieme di celle coinvolte nella/e parola/e che si sta formando con le tessere
+  // pendenti, così da poter evidenziare tutta la parola (anche le lettere già sulla board),
+  // non solo le tessere appena piazzate. Restituisce anche la cella "finale" su cui mettere
+  // il badge col punteggio (l'ultima tessera pendente in ordine di piazzamento).
+  function computePreviewCells(moveTiles) {
+    const cells = new Set();
+    if (moveTiles.length === 0) return { cells, anchor: null };
+
+    const simBoard = board.map(row => [...row]);
+    for (const t of moveTiles) {
+      if (simBoard[t.row][t.col] === null) simBoard[t.row][t.col] = t.letter;
+    }
+
+    const rows = moveTiles.map(t => t.row);
+    const cols = moveTiles.map(t => t.col);
+    const sameRow = rows.every(r => r === rows[0]);
+    const sameCol = cols.every(c => c === cols[0]);
+
+    if (sameRow || sameCol) {
+      const horizontal = sameRow;
+      const mainCells = getWordCellsFromMove(moveTiles[0].row, moveTiles[0].col, horizontal, simBoard);
+      mainCells.forEach(([r, c]) => cells.add(r + ',' + c));
+
+      for (const t of moveTiles) {
+        const perpCells = getWordCellsFromMove(t.row, t.col, !horizontal, simBoard);
+        perpCells.forEach(([r, c]) => cells.add(r + ',' + c));
+      }
+    }
+
+    const last = moveTiles[moveTiles.length - 1];
+    const anchor = cells.size > 0 ? [last.row, last.col] : null;
+    return { cells, anchor };
   }
 
   function validateAndScoreMove(moveTiles) {
