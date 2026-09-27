@@ -12,7 +12,12 @@ const CACHE_NAME = `scrabble-go-${CACHE_VERSION}`;
 const CORE_ASSETS = [
   './',
   './index.html',
-  './dizionario.txt'
+  './dizionario.txt',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-maskable-192.png',
+  './icon-maskable-512.png'
 ];
 
 self.addEventListener('install', (event) => {
