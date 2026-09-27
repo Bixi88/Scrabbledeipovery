@@ -360,7 +360,7 @@
 
     .cell.pending.preview-end .score-bubble {
       position: absolute;
-      bottom: -7px;
+      top: -7px;
       right: -7px;
       background: #2e7d32;
       color: #fff;
@@ -807,7 +807,9 @@
   let bag = [];
   let gems = 123;
   let isCpuThinking = false;
-  let dragState = null;         // stato del trascinamento in corso
+  let dragState = null;         // stato del trascinamento in corso (dal rack)
+  let boardDragState = null;    // stato del trascinamento di una tessera già piazzata (pending) sulla board
+  let lastBoardDragEndAt = 0;   // timestamp per ignorare il "click" fantasma dopo un drag sulla board
   let dragGhostEl = null;
   let hoverCellEl = null;
   let swapMode = false;         // true mentre il giocatore sta scegliendo le tessere da cambiare
@@ -971,6 +973,8 @@
               cell.appendChild(bubble);
             }
           }
+
+          attachBoardTileDrag(cell, r, c);
         } else {
           // Altrimenti mostra l'etichetta premium
           if (premium > 0) {
@@ -1062,19 +1066,27 @@
     syncUI();
   }
 
+  // Toglie dalla board una tessera pending in (row,col) e la rimette nel rack.
+  // Ritorna true se c'era davvero una tessera da richiamare.
+  function recallPendingTileAt(row, col) {
+    const pendIdx = pendingTiles.findIndex(t => t.row === row && t.col === col);
+    if (pendIdx === -1) return false;
+    const [tile] = pendingTiles.splice(pendIdx, 1);
+    playerRack.push(tile.letter);
+    renderRack();
+    renderBoard();
+    syncUI();
+    return true;
+  }
+
   function handleCellClick(row, col) {
     if (turn !== 'player' || gameOver || isCpuThinking) return;
+    // Subito dopo un trascinamento sulla board arriva anche un "click" fantasma
+    // sullo stesso tocco: lo ignoriamo perché l'azione è già stata gestita.
+    if (Date.now() - lastBoardDragEndAt < 300) return;
 
-    // Tocca una tessera già piazzata in questo turno: la riprendi in mano
-    const pendIdx = pendingTiles.findIndex(t => t.row === row && t.col === col);
-    if (pendIdx !== -1) {
-      const [tile] = pendingTiles.splice(pendIdx, 1);
-      playerRack.push(tile.letter);
-      renderRack();
-      renderBoard();
-      syncUI();
-      return;
-    }
+    // Tocca (senza trascinare) una tessera già piazzata in questo turno: la riprendi in mano
+    if (recallPendingTileAt(row, col)) return;
 
     if (board[row][col] !== null) {
       showNotification('Cella già occupata!', 1200);
@@ -1277,6 +1289,95 @@
     removeGhost();
     clearHoverCell();
     dragState = null;
+  }
+
+  // ---------- Trascinamento di una tessera già piazzata (pending) tra caselle ----------
+  function attachBoardTileDrag(cellEl, row, col) {
+    cellEl.addEventListener('pointerdown', (e) => {
+      if (turn !== 'player' || gameOver || isCpuThinking) return;
+      const pending = pendingTiles.find(t => t.row === row && t.col === col);
+      if (!pending) return;
+      e.preventDefault();
+
+      boardDragState = {
+        fromRow: row,
+        fromCol: col,
+        letter: pending.letter,
+        startX: e.clientX,
+        startY: e.clientY,
+        moved: false,
+        pointerId: e.pointerId,
+        cellEl
+      };
+
+      try { cellEl.setPointerCapture(e.pointerId); } catch (err) {}
+      cellEl.addEventListener('pointermove', onBoardDragMove);
+      cellEl.addEventListener('pointerup', onBoardDragEnd);
+      cellEl.addEventListener('pointercancel', onBoardDragCancel);
+    });
+  }
+
+  function onBoardDragMove(e) {
+    if (!boardDragState) return;
+    const dx = e.clientX - boardDragState.startX;
+    const dy = e.clientY - boardDragState.startY;
+    if (!boardDragState.moved && Math.hypot(dx, dy) > 8) {
+      boardDragState.moved = true;
+      createGhost(boardDragState.letter);
+      boardDragState.cellEl.classList.add('dragging-source');
+    }
+    if (boardDragState.moved) {
+      positionGhost(e.clientX, e.clientY);
+      updateHoverCell(e.clientX, e.clientY);
+    }
+  }
+
+  function finishBoardDrag(e) {
+    if (!boardDragState) return;
+    const { cellEl, moved, fromRow, fromCol } = boardDragState;
+    cellEl.removeEventListener('pointermove', onBoardDragMove);
+    cellEl.removeEventListener('pointerup', onBoardDragEnd);
+    cellEl.removeEventListener('pointercancel', onBoardDragCancel);
+    cellEl.classList.remove('dragging-source');
+
+    if (moved) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const targetCellEl = el && el.closest ? el.closest('.cell') : null;
+      removeGhost();
+      clearHoverCell();
+      if (targetCellEl) {
+        const tr = +targetCellEl.dataset.row, tc = +targetCellEl.dataset.col;
+        const isSame = tr === fromRow && tc === fromCol;
+        const isFree = board[tr][tc] === null && !pendingTiles.some(t => t.row === tr && t.col === tc);
+        if (!isSame && isFree) {
+          const idx = pendingTiles.findIndex(t => t.row === fromRow && t.col === fromCol);
+          if (idx !== -1) pendingTiles[idx] = { row: tr, col: tc, letter: pendingTiles[idx].letter };
+        }
+        // Se la casella target non è valida (occupata o è la stessa), la tessera
+        // resta semplicemente dov'era: nessuna modifica da fare.
+      }
+      renderBoard();
+      syncUI();
+    } else {
+      // Nessun movimento: era un semplice tocco -> richiama la tessera nel rack
+      recallPendingTileAt(fromRow, fromCol);
+    }
+    lastBoardDragEndAt = Date.now();
+    boardDragState = null;
+  }
+
+  function onBoardDragEnd(e) { finishBoardDrag(e); }
+  function onBoardDragCancel() {
+    if (!boardDragState) return;
+    const { cellEl } = boardDragState;
+    cellEl.removeEventListener('pointermove', onBoardDragMove);
+    cellEl.removeEventListener('pointerup', onBoardDragEnd);
+    cellEl.removeEventListener('pointercancel', onBoardDragCancel);
+    cellEl.classList.remove('dragging-source');
+    removeGhost();
+    clearHoverCell();
+    lastBoardDragEndAt = Date.now();
+    boardDragState = null;
   }
 
   // ==================== LOGICA DI GIOCO ====================
