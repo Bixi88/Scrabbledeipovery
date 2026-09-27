@@ -958,8 +958,8 @@
   window.addEventListener('orientationchange', () => setTimeout(setRealViewportHeight, 100));
 
   // ==================== COSTANTI ====================
-  // Valori e distribuzione delle lettere italiane (Scrabble/Scarabeo), 113 tessere totali:
-  // 111 lettere + 2 tessere vuote (jolly), come da sacchetto ufficiale.
+  // Valori e distribuzione ufficiali delle lettere italiane (Scrabble), 120 tessere totali:
+  // 118 lettere + 2 tessere vuote (jolly), come da sacchetto ufficiale (fonte: regole Scrabble/Scrabble GO).
   const LETTER_VALUES = {
     A: 1, B: 5, C: 2, D: 5, E: 1, F: 5, G: 8, H: 8, I: 1,
     L: 3, M: 3, N: 3, O: 1, P: 5, Q: 10, R: 2, S: 2, T: 2,
@@ -967,9 +967,9 @@
   };
 
   const LETTER_DISTRIBUTION = {
-    A: 14, B: 3, C: 6, D: 2, E: 11, F: 3, G: 2, H: 2, I: 11,
-    L: 4, M: 5, N: 5, O: 14, P: 3, Q: 1, R: 6, S: 4, T: 6,
-    U: 5, V: 2, Z: 2,
+    A: 14, B: 3, C: 6, D: 3, E: 11, F: 3, G: 2, H: 2, I: 12,
+    L: 5, M: 5, N: 5, O: 15, P: 3, Q: 1, R: 6, S: 6, T: 6,
+    U: 5, V: 3, Z: 2,
     '★': 2   // tessere vuote (jolly): valgono 0 punti e possono sostituire qualsiasi lettera
   };
 
