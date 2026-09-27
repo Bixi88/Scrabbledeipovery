@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Scrabble GO · CPU</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      font-family: 'Roboto', 'Segoe UI', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html { height: 100%; }
+
+    body {
+      background-color: #e8f0e6;
+      min-height: 100vh;
+      min-height: 100dvh;
+      min-height: calc(var(--vh, 1vh) * 100);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .app-container {
+      width: 100vw;
+      max-width: 500px;
+      height: 100vh;
+      height: 100dvh;
+      height: calc(var(--vh, 1vh) * 100);
+      max-height: 900px;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, #c8e0c0 0%, #a8c8a0 100%);
+      position: relative;
+      box-shadow: 0 0 50px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    /* ========== HEADER ========== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: linear-gradient(180deg, #6ecf6e 0%, #4da84d 100%);
+      color: white;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 20;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .flag-icon {
+      width: 24px;
+      height: 16px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #012169 0%, #012169 33%, #fff 33%, #fff 66%, #C8102E 66%, #C8102E 100%);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .flag-icon::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(to bottom, transparent 45%, #C8102E 45%, #C8102E 55%, transparent 55%);
+    }
+    .flag-icon::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(to right, transparent 40%, #fff 40%, #fff 60%, transparent 60%);
+    }
+
+    .header-message {
+      background: rgba(0,0,0,0.2);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    .gem-counter {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.9rem;
+    }
+
+    .gem-icon {
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, #4fc3f7, #0288d1);
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      box-shadow: 0 0 6px rgba(79, 195, 247, 0.6);
+    }
+
+    /* ========== PLAYER PANEL ========== */
+    .player-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(180deg, #8fe02a 0%, #6cb818 100%);
+      padding: 8px 16px;
+      flex-shrink: 0;
+      position: relative;
+      border-bottom: 3px solid #5a9e14;
+    }
+
+    .player-side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      width: 100px;
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .avatar.player-avatar {
+      background: linear-gradient(135deg, #4a90e2, #2c5aa0);
+      color: white;
+    }
+
+    .avatar.cpu-avatar {
+      background: linear-gradient(135deg, #f5a623, #d48a10);
+      color: white;
+    }
+
+    .player-name {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #1a4a1a;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+    }
+
+    .player-score {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+      line-height: 1;
+    }
+
+    .center-turn-indicator {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #e8f5e0, #a8d080);
+      border: 3px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25), inset 0 2px 4px rgba(255,255,255,0.5);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .turn-letter {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #4a8a2a;
+      text-shadow: 1px 1px 0 #fff;
+      transform: rotate(-15deg);
+    }
+
+    .center-turn-indicator.active-cpu {
+      background: radial-gradient(circle at 40% 35%, #ffe0b2, #ffb74d);
+    }
+    .center-turn-indicator.active-cpu .turn-letter {
+      color: #b35c00;
+    }
+
+    /* ========== BOARD ========== */
+    .board-section {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 4px;
+      background: #b8d4b0;
+      min-height: 0;
+      position: relative;
+    }
+
+    .board-wrapper {
+      background: #d4e8cc;
+      padding: 4px;
+      border-radius: 6px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      width: 100%;
+      height: 100%;
+      max-width: 480px;
+      max-height: 100%;
+      aspect-ratio: 1/1;
+      display: flex;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(15, 1fr);
+      grid-template-rows: repeat(15, 1fr);
+      gap: 2px;
+      background: #fdfcf8;
+      width: 100%;
+      height: 100%;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    /* CELLA BASE - PIATTA, CON LEGGERO SQUIRCLE E STACCO BIANCO (come Scrabble GO) */
+    .cell {
+      background: #f0ede4;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.65rem;
+      color: #333;
+      position: relative;
+      transition: background 0.15s;
+      cursor: pointer;
+      min-width: 0;
+      min-height: 0;
+      border: none;
+      box-shadow: none;
+      outline: none;
+      text-align: center;
+      line-height: 1;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    /* Colori premium - PIATTI */
+    .cell.tw { background: #e91e63; color: #fff; }
+    .cell.dw { background: #ff7043; color: #fff; }
+    .cell.tl { background: #1e88e5; color: #fff; }
+    .cell.dl { background: #81d4fa; color: #333; }
+    .cell.star { background: #e91e63; color: #fff; }
+
+    /* Etichette premium ben visibili */
+    .cell .premium-label {
+      font-size: 0.55rem;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      opacity: 0.95;
+      line-height: 1;
+    }
+
+    .cell.tw .premium-label,
+    .cell.dw .premium-label,
+    .cell.tl .premium-label,
+    .cell.star .premium-label {
+      color: #fff;
+      text-shadow: 0 0 1px rgba(0,0,0,0.3);
+    }
+
+    .cell.dl .premium-label {
+      color: #0d3a5c;
+    }
+
+    /* Tessera piazzata */
+    .cell.occupied {
+      background: #f5e6b8;
+      color: #1a1a1a;
+      font-weight: 900;
+      font-size: 0.85rem;
+      border: 1px solid #d4c090;
+      z-index: 5;
+    }
+
+    .cell.occupied .tile-points {
+      position: absolute;
+      bottom: 1px;
+      right: 2px;
+      font-size: 0.5rem;
+      font-weight: 700;
+      color: #5a4a20;
+      line-height: 1;
+    }
+
+    /* Cella selezionata (tessera armata pronta da piazzare) */
+    .cell.selected {
+      outline: 3px solid #ffeb3b;
+      outline-offset: -3px;
+      z-index: 10;
+    }
+
+    /* Cella target durante il drag */
+    .cell.drop-hover {
+      outline: 3px dashed #2e7d32;
+      outline-offset: -3px;
+      background: #e8f5e0 !important;
+      z-index: 12;
+    }
+
+    /* Tessera piazzata in questo turno ma non ancora confermata */
+    .cell.pending {
+      background: #fdf6d8;
+      color: #1a1a1a;
+      font-weight: 900;
+      font-size: 0.85rem;
+      border: 2px solid #2e7d32;
+      box-shadow: inset 0 0 0 1px rgba(46,125,50,0.4);
+      z-index: 6;
+    }
+
+    .cell.pending .tile-points {
+      position: absolute;
+      bottom: 1px;
+      right: 2px;
+      font-size: 0.5rem;
+      font-weight: 700;
+      color: #2e7d32;
+      line-height: 1;
+    }
+
+    .cell.pending.preview-end .score-bubble {
+      position: absolute;
+      bottom: -7px;
+      right: -7px;
+      background: #2e7d32;
+      color: #fff;
+      font-size: 0.5rem;
+      font-weight: 800;
+      padding: 2px 5px;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+      z-index: 20;
+      white-space: nowrap;
+    }
+
+    /* Tessera "fantasma" che segue il dito durante il trascinamento (niente zoom di schermata) */
+    .drag-ghost {
+      position: fixed;
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #faf0d0 0%, #e8d8a8 100%);
+      border: 2px solid #d4c090;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #2d3e1f;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.45);
+      pointer-events: none;
+      z-index: 500;
+      transform: translate(-50%, -50%) scale(1.1);
+      opacity: 0.96;
+    }
+
+    .rack-slot.dragging-source {
+      opacity: 0.25;
+    }
+
+    .rack-slot.marked-swap {
+      outline: 3px solid #e53935;
+      outline-offset: 1px;
+      box-shadow: 0 0 0 3px rgba(229,57,53,0.35), 0 6px 12px rgba(0,0,0,0.3);
+      transform: translateY(-4px);
+    }
+
+    .bag-bar {
+      background: rgba(0,0,0,0.12);
+      color: #1a4a1a;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 3px 0;
+      flex-shrink: 0;
+      letter-spacing: 0.2px;
+    }
+
+    .rack-slot.filled, .cell {
+      touch-action: none;
+    }
+
+    /* Stella centrale - simbolo */
+    .cell.star .premium-label {
+      font-size: 0.9rem;
+    }
+
+    /* ========== RACK ========== */
+    .rack-section {
+      background: linear-gradient(180deg, #d4aa7c 0%, #b88a5c 100%);
+      padding: 12px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      border-top: 3px solid #a07040;
+      box-shadow: 0 -3px 10px rgba(0,0,0,0.2);
+      position: relative;
+    }
+
+    .rack-slots {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: clamp(4px, 1.8vw, 8px);
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .rack-slot {
+      width: 100%;
+      aspect-ratio: 1/1;
+      background: #a87a4a;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: transform 0.15s;
+      cursor: pointer;
+      border: 2px solid #8a6030;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .rack-slot.filled {
+      background: linear-gradient(180deg, #faf0d0 0%, #e8d8a8 100%);
+      border: 2px solid #d4c090;
+    }
+
+    .rack-slot.selected-tile {
+      transform: translateY(-6px) scale(1.05);
+      box-shadow: 0 0 0 3px #ffeb3b, 0 6px 12px rgba(0,0,0,0.4);
+      z-index: 15;
+    }
+
+    .rack-letter {
+      font-size: clamp(1.1rem, 6.5vw, 1.6rem);
+      font-weight: 900;
+      color: #2d3e1f;
+      text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+      line-height: 1;
+    }
+
+    .rack-points {
+      position: absolute;
+      bottom: 3px;
+      right: 5px;
+      font-size: clamp(0.5rem, 2.2vw, 0.65rem);
+      font-weight: 700;
+      color: #6b5a2e;
+    }
+
+    /* ========== BOTTOM BAR ========== */
+    .bottom-bar {
+      background: linear-gradient(180deg, #5a9e44 0%, #3d7a2e 100%);
+      padding: 8px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 5px;
+      flex-shrink: 0;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.9);
+      background: rgba(255,255,255,0.3);
+    }
+
+    .main-action-btn {
+      flex: 1;
+      padding: 10px 10px;
+      border-radius: 30px;
+      background: linear-gradient(180deg, #ffd54f 0%, #ffb300 100%);
+      border: none;
+      font-weight: 900;
+      font-size: 0.9rem;
+      color: #4a3000;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+      box-shadow: 0 4px 0 #c88a00, 0 6px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.08s, box-shadow 0.08s;
+      letter-spacing: 1px;
+    }
+
+    .main-action-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 0px 0 #c88a00, 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .main-action-btn:disabled {
+      opacity: 0.5;
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #c88a00;
+      pointer-events: none;
+    }
+
+    .main-action-btn.secondary {
+      background: linear-gradient(180deg, #b0bec5 0%, #78909c 100%);
+      box-shadow: 0 4px 0 #546e7a, 0 6px 12px rgba(0,0,0,0.3);
+      color: #fff;
+      text-shadow: 0 1px 0 rgba(0,0,0,0.3);
+    }
+
+    .main-action-btn.secondary:active {
+      box-shadow: 0 0px 0 #546e7a;
+    }
+
+    /* ========== NOTIFICATION ========== */
+    .notification {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 60, 20, 0.92);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 24px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 100;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      white-space: nowrap;
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .notification.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .cpu-rack-preview {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+      padding: 4px 0 0;
+    }
+
+    .cpu-tile-mini {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(180deg, #9a7040 0%, #7a5020 100%);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    ::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body>
+<div class="app-container" id="app">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="flag-icon"></div>
+      <div class="header-message" id="headerMessage">Turno: Tu</div>
+    </div>
+    <div class="gem-counter">
+      <div class="gem-icon"></div>
+      <span id="gemCount">123</span>
+    </div>
+  </div>
+
+  <!-- SACCHETTO TESSERE -->
+  <div class="bag-bar" id="bagBar">🎒 Sacchetto: <span id="bagCount">86</span> tessere rimaste</div>
+
+  <!-- PLAYER PANEL -->
+  <div class="player-panel">
+    <div class="player-side">
+      <div class="avatar player-avatar">👤</div>
+      <div class="player-name">TU</div>
+      <div class="player-score" id="playerScoreDisplay">0</div>
+    </div>
+
+    <div class="center-turn-indicator" id="turnIndicator">
+      <div class="turn-letter">S</div>
+    </div>
+
+    <div class="player-side">
+      <div class="avatar cpu-avatar">🤖</div>
+      <div class="player-name">CPU</div>
+      <div class="player-score" id="cpuScoreDisplay">0</div>
+    </div>
+  </div>
+
+  <!-- BOARD -->
+  <div class="board-section">
+    <div class="board-wrapper">
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+
+  <!-- RACK -->
+  <div class="rack-section">
+    <div class="rack-slots" id="rackSlots"></div>
+    <div class="cpu-rack-preview" id="cpuRackPreview"></div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <div class="icon-btn" id="menuBtn" title="Menu">☰</div>
+    <div class="icon-btn" id="recallBtn" title="Ritira le lettere">↩️</div>
+    <button class="main-action-btn secondary" id="skipBtn" style="flex:0 1 90px; font-size:0.75rem; padding:8px 6px;">PASSA</button>
+    <button class="main-action-btn" id="playBtn" disabled>GIOCA</button>
+    <div class="icon-btn" id="swapBtn" title="Cambia tessere">🔁</div>
+    <div class="icon-btn" id="shuffleBtn" title="Mescola">🔀</div>
+    <div class="icon-btn" id="newGameBtn" title="Nuova Partita">🔄</div>
+  </div>
+
+  <!-- NOTIFICATION -->
+  <div class="notification" id="notification"></div>
+</div>
+
+<script>
+  // Fix altezza reale del viewport: alcuni WebView Android non supportano 100dvh,
+  // quindi misuriamo noi window.innerHeight (che tiene conto di barre indirizzo/nav
+  // del browser) e lo esponiamo come variabile CSS, aggiornandola ad ogni resize.
+  function setRealViewportHeight() {
+    document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+  }
+  setRealViewportHeight();
+  window.addEventListener('resize', setRealViewportHeight);
+  window.addEventListener('orientationchange', () => setTimeout(setRealViewportHeight, 100));
+
+  // ==================== COSTANTI ====================
+  const LETTER_VALUES = {
+    A: 1, B: 5, C: 2, D: 3, E: 1, F: 4, G: 2, H: 4, I: 1,
+    J: 8, K: 5, L: 1, M: 3, N: 1, O: 1, P: 3, Q: 10, R: 1,
+    S: 1, T: 1, U: 1, V: 4, W: 4, X: 8, Y: 4, Z: 10
+  };
+
+  const LETTER_DISTRIBUTION = {
+    A: 9, B: 2, C: 2, D: 4, E: 12, F: 2, G: 3, H: 2, I: 9,
+    J: 1, K: 1, L: 4, M: 2, N: 6, O: 8, P: 2, Q: 1, R: 6,
+    S: 4, T: 6, U: 4, V: 2, W: 2, X: 1, Y: 2, Z: 1
+  };
+
+  // Dizionario italiano (parole comuni) usato per validare le parole formate sulla board.
+  // Fonte: napolux/paroleitaliane (licenza MIT) - lista "1000_parole_italiane_comuni".
+  // È un dizionario di base, non esaustivo: parole meno comuni verranno rifiutate.
+  const ITALIAN_WORDS_RAW = "a abbandonare abbastanza abitare abito accadere accanto accendere accettare accogliere accompagnare accordo accorgersi acqua addirittura addosso adesso affare affatto affermare affrontare aggiungere ah aiutare aiuto albergo albero alcuno allontanare allora almeno alto altro alzare amare ambiente americano amico ammazzare ammettere amore ampio anche ancora andare angolo anima animale animo anno annunciare antico anzi apparire appartenere appena appoggiare appunto aprire argomento aria arma armare arrestare arrivare arte articolo ascoltare aspettare aspetto assai assicurare assistere assoluto assumere attaccare atteggiamento attendere attento attenzione attesa attimo attività atto attore attorno attraversare attuale aumentare automobile autore autorità avanti avanzare avere avvenire avvertire avvicinare avvocato azione azzurro baciare badare bagno bambina bambino base basso bastare battaglia battere bellezza bello bene bere bestia bianco biondo bisognare bisogno bocca bosco braccio bravo breve bruciare brutto buio buono buttare cadere caffè calcio caldo cambiare camera camminare campagna campo cane cantare capace capello capire capitare capo carattere caratteristico carne caro carta casa caso cattivo cattolico causa cavallo celebrare centrale centro cercare certamente certo che chi chiamare chiaro chiave chiedere chiesa chilometro chissà chiudere ci ciascuno cielo cioè circa cittadino città civile civiltà ciò classe collina collo colore coloro colpa colpire colpo come cominciare commercio commissione comodo compagnia compagno compiere completamente comporre comprare comprendere comune comunicazione comunque con concedere concetto concludere condizione condurre confessare confronto congresso conoscenza conoscere conseguenza consentire conservare considerare consiglio contadino contare contatto contenere contento continuare continuo conto contrario contro controllo convincere coprire coraggio corpo corrente correre corsa corso cortile cosa coscienza costa costituire costringere costruire costruzione creare credere crescere crisi cristiano croce cucina cui cultura cuore cura da dare davanti davvero decidere decisione dedicare denaro dente dentro descrivere desiderare desiderio destino destro determinare di dichiarare dietro difendere difesa differenza difficile difficoltà diffondere dimenticare dimostrare dinanzi dio dipendere dire diretto direttore direzione dirigere diritto discorso discutere disporre disposizione distanza distinguere distruggere dito divenire diventare diverso divertire dividere dolce dolore domanda domandare domani domenica don donna dopo dormire dottore dove dovere dubbio dunque durante durare duro e eccellenza eccetera ecco economico effetto egli eh elemento elettrico elevare energia enorme entrare entro epoca eppure erba errore esame escludere esempio esercito esistere esperienza esporre espressione esprimere essa essere esso estate estendere estero estremo età europeo evitare fabbrica faccia facile fame famiglia famoso fantasia fatica fatto favore fede felice fenomeno ferire fermare fermo ferro festa fianco fiducia figlia figlio figura figurare film filo finalmente finché fine finestra finire fino fiore fissare fiume foglia folla fondare fondo forma formare fornire forse forte fortuna forza fra francese frase fratello freddo fresco fretta fronte frutto fuggire fumare funzione fuoco fuori futuro gamba gatto generale genere gente gesto gettare giallo giardino giocare gioco gioia giornale giornata giorno giovane giovanotto girare giro giudicare giudizio giugno giungere giustizia giusto già giù godere governo grado grande grave grazia grazie greco gridare grigio grosso gruppo guardare guardia guerra guidare gusto idea ieri il immaginare immagine imparare impedire imporre importante importanza importare impossibile impressione improvviso in incontrare indicare indietro industria industriale infatti infine inglese iniziare inizio innamorare inoltre insegnare insieme insistere insomma intanto intendere intenzione interessante interessare interesse internazionale interno intero intorno inutile invece inverno invitare io isola istante istituto italiano labbro lago lanciare largo lasciare latino lato latte lavorare lavoro legare legge leggere leggero lei lettera letto levare li liberare libero libertà libro limitare limite linea lingua lira lo lontano loro lotta luce lui luna lungo luogo là lì ma macchina madre maestro magari maggio maggiore malattia male mamma mancare mandare mangiare maniera mano mantenere mare marito massa massimo materia matrimonio mattina mattino medesimo medico medio meglio memoria meno mente mentre mercato meritare merito mese messa mestiere metro mettere metà mezzo mi migliore milione militare minimo ministro minore minuto mio misura moderno modo moglie molto momento mondo montagna monte morale morire morte mostrare motivo movimento muovere muro musica nascere nascondere natura naturale naturalmente nave nazionale nazione ne neanche necessario necessità nemico nemmeno neppure nero nessuno niente no nobile noi nome non nord normale nostro notare notevole notizia noto notte nudo nulla numero numeroso nuovo né o occasione occhio occorrere odore offendere offrire oggetto oggi ogni ognuno oh oltre ombra onore opera operaio operazione opinione opporre oppure ora oramai ordinare ordine orecchio organizzare origine oro ospedale osservare ottenere pace padre padrone paese pagare pagina palazzo pane papà parecchio parere parete parlare parola parte partecipare particolare partire partito passare passato passione passo patria paura pazzo peccato peggio pelle pena pensare pensiero per perché perciò perdere perfetto perfino pericolo pericoloso periodo permettere persona personaggio personale però pesare peso pezzo piacere piangere piano pianta piantare pianura piazza piccolo piede pieno pietra pietà piuttosto più poco poesia poeta poiché politica politico polizia pomeriggio ponte popolazione popolo porre porta portare porto posare posizione possedere possibile possibilità posto potenza potere povero pranzo prato preciso preferire pregare prendere preoccupare preparare presentare presente presenza presidente presso presto prevedere prezzo prima primo principale principe principio privato probabilmente problema procedere processo prodotto produrre produzione professore profondo programma promettere pronto proporre proposito proposta proprio prossimo prova provare provincia provocare provvedere pubblicare pubblico punta punto pure puro qua quadro qualche qualcosa qualcuno quale qualità qualsiasi qualunque quanto quarto quasi quello questione questo qui quindi raccogliere raccontare ragazza ragazzo raggiungere ragione rapido rapporto rappresentare reale realtà recare recente regione regno relazione religioso rendere repubblica resistere restare resto ricchezza ricco ricerca ricevere richiedere riconoscere ricordare ricordo ridere ridurre riempire rientrare riferire rifiutare riguardare rimanere rimettere ringraziare ripetere riportare riprendere risolvere rispetto rispondere risposta risultare risultato ritenere ritornare ritorno ritrovare riunire riuscire riva rivedere rivelare rivolgere rivoluzione roba romano rompere rosso russo sacrificio sacro sala salire saltare salutare salvare sangue sapere sbagliare scala scappare scegliere scena scendere scherzare scienza scomparire scopo scoppiare scoprire scorrere scrittore scrivere scuola scusare se secolo secondo sede sedere segnare segno segretario segreto seguire seguito sembrare semplice senso sentimento sentire senza sera sereno serie serio servire servizio settimana sforzo sguardo si sicurezza sicuro significare signora signore signorina silenzio simile sinistro sino sistema situazione smettere sociale società soffrire sognare sogno soldato sole solito solo soltanto soluzione sonno sopra soprattutto sorella sorgere sorprendere sorridere sorriso sostenere sottile sotto spalla spazio speciale specie spegnere speranza sperare spesa spesso spettacolo spiegare spingere spirito sposare stabilire staccare stagione stamattina stampa stanco stanza stare stasera stato stazione stella stesso storia storico strada straniero strano straordinario stringere strumento studiare studio stupido su subito succedere successo sud suo suonare superare superiore svegliare sviluppo svolgere sì tacere tagliare tale tanto tardi tavola tavolo teatro tecnico tedesco temere tempo tendere tenere tentare termine terreno territorio terzo testa tipo tirare titolo toccare togliere tono tornare tra tranquillo trarre trascinare trasformare trattare tratto treno triste troppo trovare tu tuo tuttavia tutto uccidere udire ufficiale ufficio uguale ultimo umano un unico unire università uno uomo usare uscire uso utile valere valle valore vario vasto vecchio vedere vendere venire vento veramente verde verità vero verso vestire vestito vi via viaggio vicino villa vincere vino visita viso vista vita vivere vivo voce voglia voi volare volere volgere volontà volta voltare volto vostro vuoto zia zio zitto zona";
+  const ITALIAN_WORDS = new Set(ITALIAN_WORDS_RAW.split(' '));
+
+  // ==================== DIZIONARIO ESTERNO (opzionale) ====================
+  // Se nella stessa cartella di questo index.html è presente un file "dizionario.txt"
+  // (una parola per riga o separate da spazi), viene caricato e le sue parole si
+  // AGGIUNGONO a quelle di ITALIAN_WORDS_RAW qui sopra (che resta il dizionario di
+  // riserva, sempre disponibile offline anche se il file esterno manca o il
+  // dispositivo è offline al primo avvio).
+  //
+  // Il file viene salvato nella Cache Storage del browser dopo il primo download,
+  // così le partite successive funzionano anche offline (come sw.js fa per gli
+  // altri asset). Basta mettere un dizionario.txt più ampio (es. una delle liste
+  // MIT di github.com/napolux/paroleitaliane, che includono forme flesse: plurali,
+  // coniugazioni verbali ecc., senza nomi propri) nella stessa cartella di questo
+  // file per aumentare drasticamente le parole accettate, senza toccare il codice.
+  const DICTIONARY_URL = 'dizionario.txt';
+  const DICTIONARY_CACHE_NAME = 'scrabble-dizionario-v1';
+
+  async function loadExternalDictionary() {
+    try {
+      let response = null;
+      if ('caches' in window) {
+        const cache = await caches.open(DICTIONARY_CACHE_NAME);
+        response = await cache.match(DICTIONARY_URL);
+        if (!response) {
+          const fresh = await fetch(DICTIONARY_URL, { cache: 'no-cache' });
+          if (fresh && fresh.ok) {
+            cache.put(DICTIONARY_URL, fresh.clone());
+            response = fresh;
+          }
+        }
+      } else {
+        response = await fetch(DICTIONARY_URL, { cache: 'force-cache' });
+      }
+      if (!response || !response.ok) return;
+      const text = await response.text();
+      let added = 0;
+      for (const raw of text.split(/\s+/)) {
+        const w = raw.trim().toLowerCase();
+        // Esclude righe vuote, parole con trattino/apostrofo e abbreviazioni puntate,
+        // in linea con le regole di accettazione dello Scrabble ufficiale italiano.
+        if (!w || w.includes('-') || w.includes("'") || w.includes('.')) continue;
+        if (!ITALIAN_WORDS.has(w)) added++;
+        ITALIAN_WORDS.add(w);
+      }
+      if (added > 0) {
+        console.log(`Dizionario esterno caricato: +${added} parole (totale: ${ITALIAN_WORDS.size}).`);
+      }
+    } catch (err) {
+      // Nessun dizionario.txt trovato, o offline al primo avvio: si continua
+      // tranquillamente con il solo dizionario di base già incluso nel file.
+      console.warn('Dizionario esterno non caricato, uso solo il dizionario integrato.', err);
+    }
+  }
+  loadExternalDictionary();
+
+  const BOARD_SIZE = 15;
+  const CENTER = 7;
+
+  const PREMIUM_LAYOUT = [
+    [4,0,0,1,0,0,0,4,0,0,0,1,0,0,4],
+    [0,3,0,0,0,2,0,0,0,2,0,0,0,3,0],
+    [0,0,3,0,0,0,1,0,1,0,0,0,3,0,0],
+    [1,0,0,3,0,0,0,1,0,0,0,3,0,0,1],
+    [0,0,0,0,3,0,0,0,0,0,3,0,0,0,0],
+    [0,2,0,0,0,2,0,0,0,2,0,0,0,2,0],
+    [0,0,1,0,0,0,1,0,1,0,0,0,1,0,0],
+    [4,0,0,1,0,0,0,5,0,0,0,1,0,0,4],
+    [0,0,1,0,0,0,1,0,1,0,0,0,1,0,0],
+    [0,2,0,0,0,2,0,0,0,2,0,0,0,2,0],
+    [0,0,0,0,3,0,0,0,0,0,3,0,0,0,0],
+    [1,0,0,3,0,0,0,1,0,0,0,3,0,0,1],
+    [0,0,3,0,0,0,1,0,1,0,0,0,3,0,0],
+    [0,3,0,0,0,2,0,0,0,2,0,0,0,3,0],
+    [4,0,0,1,0,0,0,4,0,0,0,1,0,0,4]
+  ];
+
+  // Etichette per le caselle premium
+  const PREMIUM_LABELS = {
+    1: 'DL',  // Double Letter
+    2: 'TL',  // Triple Letter
+    3: 'DW',  // Double Word
+    4: 'TW',  // Triple Word
+    5: '★'    // Stella centrale
+  };
+
+  // ==================== STATO ====================
+  let board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(null));
+  let playerRack = [];
+  let cpuRack = [];
+  let playerScore = 0;
+  let cpuScore = 0;
+  let selectedTileIndex = -1;   // tessera "armata" col tap, pronta da piazzare al prossimo tap sulla board
+  let pendingTiles = [];        // tessere piazzate in questo turno ma non ancora confermate: {row,col,letter}
+  let turn = 'player';
+  let gameOver = false;
+  let firstMoveDone = false;
+  let bag = [];
+  let gems = 123;
+  let isCpuThinking = false;
+  let dragState = null;         // stato del trascinamento in corso
+  let dragGhostEl = null;
+  let hoverCellEl = null;
+  let swapMode = false;         // true mentre il giocatore sta scegliendo le tessere da cambiare
+  let swapSelection = [];       // indici del rack marcati per il cambio
+
+  // ==================== DOM ====================
+  const boardEl = document.getElementById('board');
+  const rackSlotsEl = document.getElementById('rackSlots');
+  const cpuRackPreviewEl = document.getElementById('cpuRackPreview');
+  const playerScoreEl = document.getElementById('playerScoreDisplay');
+  const cpuScoreEl = document.getElementById('cpuScoreDisplay');
+  const headerMessageEl = document.getElementById('headerMessage');
+  const notificationEl = document.getElementById('notification');
+  const turnIndicatorEl = document.getElementById('turnIndicator');
+  const playBtn = document.getElementById('playBtn');
+  const skipBtn = document.getElementById('skipBtn');
+  const recallBtn = document.getElementById('recallBtn');
+  const swapBtn = document.getElementById('swapBtn');
+  const shuffleBtnEl = document.getElementById('shuffleBtn');
+  const bagCountEl = document.getElementById('bagCount');
+
+  // ==================== UTILITY ====================
+  function createBag() {
+    const newBag = [];
+    for (let [letter, count] of Object.entries(LETTER_DISTRIBUTION)) {
+      for (let i = 0; i < count; i++) newBag.push(letter);
+    }
+    shuffleArray(newBag);
+    return newBag;
+  }
+
+  function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function updateBagDisplay() {
+    if (bagCountEl) bagCountEl.textContent = bag.length;
+  }
+
+  function drawTiles(rack, n) {
+    while (rack.length < 7 && bag.length > 0) {
+      rack.push(bag.pop());
+    }
+    updateBagDisplay();
+  }
+
+  function showNotification(msg, duration = 2000) {
+    notificationEl.textContent = msg;
+    notificationEl.classList.add('show');
+    clearTimeout(notificationEl._timer);
+    notificationEl._timer = setTimeout(() => {
+      notificationEl.classList.remove('show');
+    }, duration);
+  }
+
+  function updateHeaderMessage() {
+    syncUI();
+  }
+
+  // Aggiorna messaggio in testata + stato pulsanti in base a turno e tessere in sospeso
+  function syncUI() {
+    if (gameOver) { skipBtn.disabled = true; playBtn.disabled = true; return; }
+
+    if (turn !== 'player') {
+      headerMessageEl.textContent = 'CPU sta pensando...';
+      playBtn.disabled = true;
+      skipBtn.disabled = true;
+      return;
+    }
+
+    if (swapMode) {
+      headerMessageEl.textContent = `Cambio tessere: ${swapSelection.length} selezionate`;
+      playBtn.disabled = swapSelection.length === 0;
+      skipBtn.disabled = false;
+      return;
+    }
+
+    skipBtn.disabled = isCpuThinking || pendingTiles.length > 0;
+
+    if (pendingTiles.length === 0) {
+      headerMessageEl.textContent = 'Il tuo turno';
+      playBtn.disabled = true;
+      return;
+    }
+
+    const preview = validateAndScoreMove(pendingTiles);
+    if (preview.valid) {
+      headerMessageEl.textContent = `${preview.words.join(', ')}: ${preview.score} punti`;
+      playBtn.disabled = false;
+    } else {
+      headerMessageEl.textContent = 'Componi una parola valida...';
+      playBtn.disabled = true;
+    }
+  }
+
+  function updateTurnIndicator() {
+    if (gameOver) {
+      turnIndicatorEl.classList.remove('active-cpu');
+      turnIndicatorEl.querySelector('.turn-letter').textContent = '🏁';
+      return;
+    }
+    if (turn === 'player') {
+      turnIndicatorEl.classList.remove('active-cpu');
+      turnIndicatorEl.querySelector('.turn-letter').textContent = 'S';
+    } else {
+      turnIndicatorEl.classList.add('active-cpu');
+      turnIndicatorEl.querySelector('.turn-letter').textContent = '🤖';
+    }
+  }
+
+  // ==================== RENDER ====================
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+        const premium = PREMIUM_LAYOUT[r][c];
+        
+        if (premium === 1) cell.classList.add('dl');
+        else if (premium === 2) cell.classList.add('tl');
+        else if (premium === 3) cell.classList.add('dw');
+        else if (premium === 4) cell.classList.add('tw');
+        else if (premium === 5) cell.classList.add('star');
+
+        const pending = pendingTiles.find(t => t.row === r && t.col === c);
+
+        // Se c'è una lettera confermata (turni precedenti)
+        if (board[r][c]) {
+          cell.textContent = board[r][c];
+          cell.classList.add('occupied');
+          const pts = LETTER_VALUES[board[r][c]] || 0;
+          const ptsSpan = document.createElement('span');
+          ptsSpan.className = 'tile-points';
+          ptsSpan.textContent = pts;
+          cell.appendChild(ptsSpan);
+        } else if (pending) {
+          // Lettera piazzata in questo turno, non ancora confermata
+          cell.textContent = pending.letter;
+          cell.classList.add('pending');
+          const pts = LETTER_VALUES[pending.letter] || 0;
+          const ptsSpan = document.createElement('span');
+          ptsSpan.className = 'tile-points';
+          ptsSpan.textContent = pts;
+          cell.appendChild(ptsSpan);
+
+          // Sull'ultima tessera piazzata mostriamo il punteggio live dell'anteprima
+          if (pendingTiles[pendingTiles.length - 1] === pending) {
+            const preview = validateAndScoreMove(pendingTiles);
+            if (preview.valid) {
+              cell.classList.add('preview-end');
+              const bubble = document.createElement('span');
+              bubble.className = 'score-bubble';
+              bubble.textContent = preview.score;
+              cell.appendChild(bubble);
+            }
+          }
+        } else {
+          // Altrimenti mostra l'etichetta premium
+          if (premium > 0) {
+            const label = document.createElement('span');
+            label.className = 'premium-label';
+            label.textContent = PREMIUM_LABELS[premium];
+            cell.appendChild(label);
+          }
+        }
+
+        cell.addEventListener('click', () => handleCellClick(r, c));
+        boardEl.appendChild(cell);
+      }
+    }
+  }
+
+  function renderRack() {
+    rackSlotsEl.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'rack-slot';
+      
+      if (i < playerRack.length) {
+        const letter = playerRack[i];
+        slot.classList.add('filled');
+        if (selectedTileIndex === i) slot.classList.add('selected-tile');
+        if (swapMode && swapSelection.includes(i)) slot.classList.add('marked-swap');
+        
+        const letterSpan = document.createElement('span');
+        letterSpan.className = 'rack-letter';
+        letterSpan.textContent = letter;
+        slot.appendChild(letterSpan);
+        
+        const ptsSpan = document.createElement('span');
+        ptsSpan.className = 'rack-points';
+        ptsSpan.textContent = LETTER_VALUES[letter] || 0;
+        slot.appendChild(ptsSpan);
+        
+        attachRackDrag(slot, i);
+      }
+      
+      rackSlotsEl.appendChild(slot);
+    }
+
+    cpuRackPreviewEl.innerHTML = '';
+    for (let i = 0; i < cpuRack.length; i++) {
+      const mini = document.createElement('div');
+      mini.className = 'cpu-tile-mini';
+      mini.textContent = '?';
+      cpuRackPreviewEl.appendChild(mini);
+    }
+  }
+
+  function updateScores() {
+    playerScoreEl.textContent = playerScore;
+    cpuScoreEl.textContent = cpuScore;
+  }
+
+  // ==================== INTERAZIONE ====================
+  // Due modalità, entrambe senza zoom della schermata:
+  // 1) Trascina la tessera dal rack e rilasciala sulla cella desiderata.
+  // 2) Tocca la tessera per "armarla", poi tocca la cella dove piazzarla.
+
+  function clearSelection() {
+    selectedTileIndex = -1;
+  }
+
+  function toggleSelectTile(index) {
+    if (turn !== 'player' || gameOver || isCpuThinking) return;
+    selectedTileIndex = (selectedTileIndex === index) ? -1 : index;
+    renderRack();
+    if (selectedTileIndex !== -1) {
+      showNotification(`Lettera "${playerRack[selectedTileIndex]}" selezionata: tocca una cella.`, 1500);
+    }
+  }
+
+  function placeTileAt(row, col, rackIndex) {
+    if (turn !== 'player' || gameOver || isCpuThinking) return;
+    if (board[row][col] !== null) { showNotification('Cella già occupata!', 1200); return; }
+    if (pendingTiles.some(t => t.row === row && t.col === col)) return;
+    if (rackIndex < 0 || rackIndex >= playerRack.length) return;
+
+    const letter = playerRack[rackIndex];
+    playerRack.splice(rackIndex, 1);
+    pendingTiles.push({ row, col, letter });
+    clearSelection();
+    renderRack();
+    renderBoard();
+    syncUI();
+  }
+
+  function handleCellClick(row, col) {
+    if (turn !== 'player' || gameOver || isCpuThinking) return;
+
+    // Tocca una tessera già piazzata in questo turno: la riprendi in mano
+    const pendIdx = pendingTiles.findIndex(t => t.row === row && t.col === col);
+    if (pendIdx !== -1) {
+      const [tile] = pendingTiles.splice(pendIdx, 1);
+      playerRack.push(tile.letter);
+      renderRack();
+      renderBoard();
+      syncUI();
+      return;
+    }
+
+    if (board[row][col] !== null) {
+      showNotification('Cella già occupata!', 1200);
+      return;
+    }
+
+    if (selectedTileIndex !== -1) {
+      placeTileAt(row, col, selectedTileIndex);
+    } else {
+      showNotification('Trascina una lettera qui, oppure toccala prima nel rack.', 1800);
+    }
+  }
+
+  function recallAll() {
+    if (pendingTiles.length === 0) return;
+    for (const t of pendingTiles) playerRack.push(t.letter);
+    pendingTiles = [];
+    clearSelection();
+    renderRack();
+    renderBoard();
+    syncUI();
+    showNotification('Lettere ritirate.', 1000);
+  }
+
+  // ---------- CAMBIO TESSERE ----------
+  function toggleSwapMode() {
+    if (turn !== 'player' || gameOver || isCpuThinking) return;
+    if (!swapMode) {
+      if (pendingTiles.length > 0) recallAll();
+      swapMode = true;
+      swapSelection = [];
+      clearSelection();
+      playBtn.textContent = 'CONFERMA';
+      skipBtn.textContent = 'ANNULLA';
+      renderRack();
+      showNotification('Tocca le lettere da cambiare, poi conferma.', 2200);
+      syncUI();
+    } else {
+      exitSwapMode();
+    }
+  }
+
+  function exitSwapMode() {
+    swapMode = false;
+    swapSelection = [];
+    playBtn.textContent = 'GIOCA';
+    skipBtn.textContent = 'PASSA';
+    renderRack();
+    syncUI();
+  }
+
+  function toggleSwapSelection(index) {
+    const pos = swapSelection.indexOf(index);
+    if (pos === -1) swapSelection.push(index);
+    else swapSelection.splice(pos, 1);
+  }
+
+  function confirmSwap() {
+    if (swapSelection.length === 0) {
+      showNotification('Seleziona almeno una lettera da cambiare.', 1500);
+      return;
+    }
+    if (bag.length < swapSelection.length) {
+      showNotification('Non ci sono abbastanza tessere nel sacchetto.', 2000);
+      return;
+    }
+
+    const lettersToSwap = swapSelection.map(i => playerRack[i]);
+    const sortedDesc = [...swapSelection].sort((a, b) => b - a);
+    for (const idx of sortedDesc) playerRack.splice(idx, 1);
+    for (const l of lettersToSwap) bag.push(l);
+    shuffleArray(bag);
+    drawTiles(playerRack);
+
+    exitSwapMode();
+    renderRack();
+    renderBoard();
+    showNotification(`Hai cambiato ${lettersToSwap.length} tessere.`, 1800);
+
+    turn = 'cpu';
+    syncUI();
+    updateTurnIndicator();
+    isCpuThinking = true;
+    setTimeout(cpuMove, 900);
+  }
+
+  // ---------- Drag & drop tramite Pointer Events (nessuno zoom della board) ----------
+  function attachRackDrag(slot, index) {
+    slot.addEventListener('pointerdown', (e) => {
+      if (turn !== 'player' || gameOver || isCpuThinking) return;
+      if (index >= playerRack.length) return;
+      e.preventDefault();
+
+      if (swapMode) {
+        toggleSwapSelection(index);
+        renderRack();
+        syncUI();
+        return;
+      }
+
+      dragState = {
+        fromIndex: index,
+        letter: playerRack[index],
+        startX: e.clientX,
+        startY: e.clientY,
+        moved: false,
+        pointerId: e.pointerId,
+        slot
+      };
+
+      try { slot.setPointerCapture(e.pointerId); } catch (err) {}
+      slot.addEventListener('pointermove', onDragMove);
+      slot.addEventListener('pointerup', onDragEnd);
+      slot.addEventListener('pointercancel', onDragCancel);
+    });
+  }
+
+  function createGhost(letter) {
+    const ghost = document.createElement('div');
+    ghost.className = 'drag-ghost';
+    ghost.textContent = letter;
+    document.body.appendChild(ghost);
+    dragGhostEl = ghost;
+  }
+
+  function positionGhost(x, y) {
+    if (dragGhostEl) {
+      dragGhostEl.style.left = x + 'px';
+      dragGhostEl.style.top = y + 'px';
+    }
+  }
+
+  function removeGhost() {
+    if (dragGhostEl) { dragGhostEl.remove(); dragGhostEl = null; }
+  }
+
+  function updateHoverCell(x, y) {
+    clearHoverCell();
+    const el = document.elementFromPoint(x, y);
+    const cellEl = el && el.closest ? el.closest('.cell') : null;
+    if (cellEl) {
+      const r = +cellEl.dataset.row, c = +cellEl.dataset.col;
+      if (board[r][c] === null && !pendingTiles.some(t => t.row === r && t.col === c)) {
+        cellEl.classList.add('drop-hover');
+        hoverCellEl = cellEl;
+      }
+    }
+  }
+
+  function clearHoverCell() {
+    if (hoverCellEl) { hoverCellEl.classList.remove('drop-hover'); hoverCellEl = null; }
+  }
+
+  function onDragMove(e) {
+    if (!dragState) return;
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
+    if (!dragState.moved && Math.hypot(dx, dy) > 8) {
+      dragState.moved = true;
+      createGhost(dragState.letter);
+      dragState.slot.classList.add('dragging-source');
+    }
+    if (dragState.moved) {
+      positionGhost(e.clientX, e.clientY);
+      updateHoverCell(e.clientX, e.clientY);
+    }
+  }
+
+  function finishDrag(e) {
+    if (!dragState) return;
+    const { slot, moved, fromIndex } = dragState;
+    slot.removeEventListener('pointermove', onDragMove);
+    slot.removeEventListener('pointerup', onDragEnd);
+    slot.removeEventListener('pointercancel', onDragCancel);
+    slot.classList.remove('dragging-source');
+
+    if (moved) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const cellEl = el && el.closest ? el.closest('.cell') : null;
+      removeGhost();
+      clearHoverCell();
+      if (cellEl) {
+        placeTileAt(+cellEl.dataset.row, +cellEl.dataset.col, fromIndex);
+      }
+    } else {
+      // Nessun movimento: era un semplice tocco -> arma/disarma la lettera
+      toggleSelectTile(fromIndex);
+    }
+    dragState = null;
+  }
+
+  function onDragEnd(e) { finishDrag(e); }
+  function onDragCancel() {
+    if (!dragState) return;
+    const { slot } = dragState;
+    slot.removeEventListener('pointermove', onDragMove);
+    slot.removeEventListener('pointerup', onDragEnd);
+    slot.removeEventListener('pointercancel', onDragCancel);
+    slot.classList.remove('dragging-source');
+    removeGhost();
+    clearHoverCell();
+    dragState = null;
+  }
+
+  // ==================== LOGICA DI GIOCO ====================
+  function getWordFromMove(row, col, horizontal, boardState) {
+    let word = '';
+    let r = row, c = col;
+    if (horizontal) {
+      while (c > 0 && boardState[r][c-1] !== null) c--;
+      while (c < BOARD_SIZE && boardState[r][c] !== null) {
+        word += boardState[r][c];
+        c++;
+      }
+    } else {
+      while (r > 0 && boardState[r-1][c] !== null) r--;
+      while (r < BOARD_SIZE && boardState[r][c] !== null) {
+        word += boardState[r][c];
+        r++;
+      }
+    }
+    return word.length > 1 ? word : '';
+  }
+
+  function validateAndScoreMove(moveTiles) {
+    if (moveTiles.length === 0) return { valid: false, score: 0, words: [], error: 'Nessuna tessera posizionata' };
+
+    const simBoard = board.map(row => [...row]);
+    for (let { row, col, letter } of moveTiles) {
+      if (simBoard[row][col] !== null) return { valid: false, score: 0, words: [], error: 'Cella occupata' };
+      simBoard[row][col] = letter;
+    }
+
+    const rows = moveTiles.map(t => t.row);
+    const cols = moveTiles.map(t => t.col);
+    const sameRow = rows.every(r => r === rows[0]);
+    const sameCol = cols.every(c => c === cols[0]);
+    if (!sameRow && !sameCol) return { valid: false, score: 0, words: [], error: 'Tessere non allineate' };
+
+    if (sameRow) {
+      const minC = Math.min(...cols);
+      const maxC = Math.max(...cols);
+      for (let c = minC; c <= maxC; c++) {
+        if (simBoard[rows[0]][c] === null) return { valid: false, score: 0, words: [], error: 'Tessere non contigue' };
+      }
+    } else {
+      const minR = Math.min(...rows);
+      const maxR = Math.max(...rows);
+      for (let r = minR; r <= maxR; r++) {
+        if (simBoard[r][cols[0]] === null) return { valid: false, score: 0, words: [], error: 'Tessere non contigue' };
+      }
+    }
+
+    if (!firstMoveDone) {
+      const coversCenter = moveTiles.some(t => t.row === CENTER && t.col === CENTER);
+      if (!coversCenter) return { valid: false, score: 0, words: [], error: 'Devi coprire la stella centrale' };
+    } else {
+      let adjacent = false;
+      for (let { row, col } of moveTiles) {
+        const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+        for (let [dr, dc] of dirs) {
+          const nr = row + dr, nc = col + dc;
+          if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] !== null) {
+            adjacent = true;
+            break;
+          }
+        }
+        if (adjacent) break;
+      }
+      if (!adjacent) return { valid: false, score: 0, words: [], error: 'Devi collegarti a una tessera esistente' };
+    }
+
+    const words = [];
+    const horizontal = sameRow;
+    const mainWord = getWordFromMove(moveTiles[0].row, moveTiles[0].col, horizontal, simBoard);
+    if (mainWord.length > 1) words.push(mainWord);
+
+    for (let { row, col } of moveTiles) {
+      const perpWord = getWordFromMove(row, col, !horizontal, simBoard);
+      if (perpWord.length > 1) words.push(perpWord);
+    }
+
+    if (words.length === 0) return { valid: false, score: 0, words: [], error: 'Nessuna parola valida' };
+
+    const invalidWord = words.find(w => !ITALIAN_WORDS.has(w.toLowerCase()));
+    if (invalidWord) return { valid: false, score: 0, words: [], error: `"${invalidWord}" non è nel dizionario` };
+
+    function scoreWord(word, startRow, startCol, horiz, simBoard, moveTiles) {
+      let score = 0;
+      let multiplier = 1;
+      let r = startRow, c = startCol;
+      const moveSet = new Set(moveTiles.map(t => `${t.row},${t.col}`));
+      for (let i = 0; i < word.length; i++) {
+        const letter = simBoard[r][c];
+        const isNew = moveSet.has(`${r},${c}`);
+        let letterScore = LETTER_VALUES[letter] || 0;
+        if (isNew) {
+          const premium = PREMIUM_LAYOUT[r][c];
+          if (premium === 1) letterScore *= 2;
+          else if (premium === 2) letterScore *= 3;
+          else if (premium === 3) multiplier *= 2;
+          else if (premium === 4) multiplier *= 3;
+          else if (premium === 5) multiplier *= 2;
+        }
+        score += letterScore;
+        if (horiz) c++; else r++;
+      }
+      return score * multiplier;
+    }
+
+    function findStart(r, c, horiz) {
+      if (horiz) {
+        while (c > 0 && simBoard[r][c-1] !== null) c--;
+      } else {
+        while (r > 0 && simBoard[r-1][c] !== null) r--;
+      }
+      return { r, c };
+    }
+
+    let total = 0;
+    if (mainWord.length > 1) {
+      const start = findStart(moveTiles[0].row, moveTiles[0].col, horizontal);
+      total += scoreWord(mainWord, start.r, start.c, horizontal, simBoard, moveTiles);
+    }
+
+    for (let { row, col } of moveTiles) {
+      const perpWord = getWordFromMove(row, col, !horizontal, simBoard);
+      if (perpWord.length > 1) {
+        const start = findStart(row, col, !horizontal);
+        total += scoreWord(perpWord, start.r, start.c, !horizontal, simBoard, moveTiles);
+      }
+    }
+
+    if (moveTiles.length === 7) total += 50;
+
+    return { valid: true, score: total, words: words, error: '' };
+  }
+
+  function commitMove(moveTiles) {
+    for (let { row, col, letter } of moveTiles) {
+      board[row][col] = letter;
+    }
+    firstMoveDone = true;
+  }
+
+  // ==================== AZIONI GIOCATORE ====================
+  function playerPlay() {
+    if (turn !== 'player' || gameOver || isCpuThinking) return;
+    if (pendingTiles.length === 0) {
+      showNotification('Piazza almeno una lettera sulla board!', 1500);
+      return;
+    }
+
+    const result = validateAndScoreMove(pendingTiles);
+    if (!result.valid) {
+      showNotification('Mossa non valida: ' + result.error, 2000);
+      return;
+    }
+
+    commitMove(pendingTiles);
+    playerScore += result.score;
+    gems += Math.floor(result.score / 3);
+    const wordsPlayed = result.words.join(', ');
+    const scorePlayed = result.score;
+    pendingTiles = [];
+    drawTiles(playerRack, 1);
+
+    clearSelection();
+    updateScores();
+    renderBoard();
+    renderRack();
+    document.getElementById('gemCount').textContent = gems;
+
+    headerMessageEl.textContent = `Hai giocato ${wordsPlayed} per ${scorePlayed} punti`;
+    showNotification(`+${scorePlayed} punti! ${wordsPlayed}`, 2500);
+
+    if (playerRack.length === 0 && bag.length === 0) {
+      endGame();
+      return;
+    }
+
+    turn = 'cpu';
+    syncUI();
+    updateTurnIndicator();
+    isCpuThinking = true;
+    setTimeout(cpuMove, 1000);
+  }
+
+  function skipTurn() {
+    if (turn !== 'player' || gameOver || isCpuThinking) return;
+    if (pendingTiles.length > 0) {
+      showNotification('Ritira prima le lettere piazzate.', 1500);
+      return;
+    }
+    clearSelection();
+    renderBoard();
+    renderRack();
+    showNotification('Turno passato.', 1200);
+    turn = 'cpu';
+    syncUI();
+    updateTurnIndicator();
+    isCpuThinking = true;
+    setTimeout(cpuMove, 800);
+  }
+
+  // ==================== CPU ====================
+  function cpuMove() {
+    if (gameOver) {
+      isCpuThinking = false;
+      return;
+    }
+    if (cpuRack.length === 0 && bag.length === 0) {
+      endGame();
+      isCpuThinking = false;
+      return;
+    }
+
+    const move = findCpuMove();
+    if (move) {
+      commitMove(move.tiles);
+      cpuScore += move.score;
+      for (let t of move.tiles) {
+        const idx = cpuRack.indexOf(t.letter);
+        if (idx !== -1) cpuRack.splice(idx, 1);
+      }
+      drawTiles(cpuRack);
+      updateScores();
+      renderBoard();
+      const wordsLabel = (move.words && move.words.length) ? move.words.join(', ') : '';
+      showNotification(`CPU ha giocato ${wordsLabel} per ${move.score} punti!`, 2500);
+    } else {
+      const swapped = cpuTrySwap();
+      if (swapped > 0) {
+        showNotification(`CPU ha cambiato ${swapped} tessere.`, 1800);
+      } else {
+        showNotification('CPU passa il turno.', 1500);
+      }
+    }
+
+    if (cpuRack.length === 0 && bag.length === 0) {
+      endGame();
+      isCpuThinking = false;
+      return;
+    }
+
+    turn = 'player';
+    isCpuThinking = false;
+    clearSelection();
+    syncUI();
+    updateTurnIndicator();
+    renderBoard();
+    renderRack();
+  }
+
+  // La CPU può fare le stesse cose del giocatore: giocare parole (anche multi-lettera),
+  // cambiare tessere, o passare se non trova nulla di meglio.
+
+  function findCpuMove() {
+    if (!firstMoveDone) return findCpuMoveEmptyBoard();
+    return findCpuMoveOnBoard();
+  }
+
+  function cpuTrySwap() {
+    if (bag.length === 0 || cpuRack.length === 0) return 0;
+    const swapCount = Math.min(cpuRack.length, bag.length);
+    const removed = cpuRack.splice(0, swapCount);
+    for (const l of removed) bag.push(l);
+    shuffleArray(bag);
+    drawTiles(cpuRack);
+    return swapCount;
+  }
+
+  // Genera le celle "ancora": caselle vuote adiacenti ad almeno una tessera già piazzata
+  function collectAnchors() {
+    const anchors = [];
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if (board[r][c] === null) {
+          const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+          for (const [dr, dc] of dirs) {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] !== null) {
+              anchors.push({ row: r, col: c });
+              break;
+            }
+          }
+        }
+      }
+    }
+    return anchors;
+  }
+
+  // Tutte le combinazioni di k indici su n (per scegliere sottoinsiemi del rack)
+  function combinationsOfIndices(n, k) {
+    const result = [];
+    const combo = [];
+    function backtrack(start) {
+      if (combo.length === k) { result.push(combo.slice()); return; }
+      for (let i = start; i < n; i++) {
+        combo.push(i);
+        backtrack(i + 1);
+        combo.pop();
+      }
+    }
+    backtrack(0);
+    return result;
+  }
+
+  // Tutte le permutazioni di un array di lettere
+  function permute(arr) {
+    if (arr.length <= 1) return [arr];
+    const result = [];
+    for (let i = 0; i < arr.length; i++) {
+      const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+      for (const p of permute(rest)) result.push([arr[i], ...p]);
+    }
+    return result;
+  }
+
+  // Genera sequenze di lettere candidate dal rack (deduplicate, ordinate dalla più corta),
+  // con un tetto alle dimensioni grandi per non esplodere in numero di combinazioni
+  function candidatePermutations(rackLetters, maxSize, capBig) {
+    maxSize = maxSize || Math.min(rackLetters.length, 5);
+    capBig = capBig || 60;
+    const n = rackLetters.length;
+    const out = [];
+    const seen = new Set();
+    for (let size = 1; size <= maxSize && size <= n; size++) {
+      let countThisSize = 0;
+      const limit = size >= 5 ? capBig : Infinity;
+      const combos = combinationsOfIndices(n, size);
+      outer:
+      for (const combo of combos) {
+        const letters = combo.map(i => rackLetters[i]);
+        const perms = permute(letters);
+        for (const p of perms) {
+          const key = p.join('|');
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(p);
+          countThisSize++;
+          if (countThisSize >= limit) break outer;
+        }
+      }
+    }
+    out.sort((a, b) => a.length - b.length);
+    return out;
+  }
+
+  // Ricerca sulla board già avviata: prova a piazzare sequenze di lettere a partire da ogni
+  // "ancora" (casella vuota adiacente a una tessera esistente), in tutte le direzioni.
+  // La parola completa (comprese le lettere già sul tabellone) viene ricostruita e valutata
+  // da validateAndScoreMove esattamente come per il giocatore.
+  function findCpuMoveOnBoard() {
+    const anchors = collectAnchors();
+    if (anchors.length === 0) return findCpuMoveEmptyBoard();
+
+    const sequences = candidatePermutations(cpuRack, 4);
+    let best = null;
+    let evaluated = 0;
+    const MAX_EVAL = 6000;
+
+    outerLoop:
+    for (const anchor of anchors) {
+      for (const [dr, dc] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+        let maxLen = 0, r = anchor.row, c = anchor.col;
+        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === null) {
+          maxLen++;
+          r += dr; c += dc;
+        }
+        if (maxLen === 0) continue;
+
+        for (const seq of sequences) {
+          if (seq.length > maxLen) continue;
+          evaluated++;
+          if (evaluated > MAX_EVAL) break outerLoop;
+
+          const cells = [];
+          for (let i = 0; i < seq.length; i++) {
+            cells.push({ row: anchor.row + dr * i, col: anchor.col + dc * i, letter: seq[i] });
+          }
+          const result = validateAndScoreMove(cells);
+          if (result.valid && (!best || result.score > best.score)) {
+            best = { tiles: cells, score: result.score, words: result.words };
+          }
+        }
+      }
+    }
+    return best;
+  }
+
+  // Board vuota (accade solo se il giocatore passa/cambia prima di aprire la partita):
+  // la CPU deve coprire la stella centrale.
+  function findCpuMoveEmptyBoard() {
+    const sequences = candidatePermutations(cpuRack, Math.min(cpuRack.length, 7), 40);
+    let best = null;
+    for (const seq of sequences) {
+      for (let startCol = CENTER - seq.length + 1; startCol <= CENTER; startCol++) {
+        if (startCol < 0 || startCol + seq.length - 1 >= BOARD_SIZE) continue;
+        const cells = seq.map((letter, i) => ({ row: CENTER, col: startCol + i, letter }));
+        const result = validateAndScoreMove(cells);
+        if (result.valid && (!best || result.score > best.score)) {
+          best = { tiles: cells, score: result.score, words: result.words };
+        }
+      }
+    }
+    return best;
+  }
+
+  // ==================== FINE PARTITA ====================
+  function endGame() {
+    gameOver = true;
+    turn = 'none';
+    isCpuThinking = false;
+    let msg = `Partita finita! Tu: ${playerScore} - CPU: ${cpuScore}. `;
+    if (playerScore > cpuScore) msg += 'Hai vinto! 🎉';
+    else if (playerScore < cpuScore) msg += 'CPU vince.';
+    else msg += 'Pareggio.';
+    headerMessageEl.textContent = msg;
+    showNotification(msg, 5000);
+    updateTurnIndicator();
+    renderBoard();
+    renderRack();
+    playBtn.disabled = true;
+    skipBtn.disabled = true;
+  }
+
+  // ==================== NUOVA PARTITA ====================
+  function newGame() {
+    board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(null));
+    bag = createBag();
+    playerRack = [];
+    cpuRack = [];
+    drawTiles(playerRack, 7);
+    drawTiles(cpuRack, 7);
+    playerScore = 0;
+    cpuScore = 0;
+    clearSelection();
+    pendingTiles = [];
+    swapMode = false;
+    swapSelection = [];
+    playBtn.textContent = 'GIOCA';
+    skipBtn.textContent = 'PASSA';
+    turn = 'player';
+    gameOver = false;
+    firstMoveDone = false;
+    isCpuThinking = false;
+    gems = 123;
+    document.getElementById('gemCount').textContent = gems;
+    updateBagDisplay();
+    updateScores();
+    renderBoard();
+    renderRack();
+    syncUI();
+    updateTurnIndicator();
+    skipBtn.disabled = false;
+    showNotification('Nuova partita! Inizia tu.', 2000);
+  }
+
+  // ==================== EVENTI ====================
+  playBtn.addEventListener('click', () => { if (swapMode) confirmSwap(); else playerPlay(); });
+  skipBtn.addEventListener('click', () => { if (swapMode) exitSwapMode(); else skipTurn(); });
+  recallBtn.addEventListener('click', recallAll);
+  swapBtn.addEventListener('click', toggleSwapMode);
+  document.getElementById('newGameBtn').addEventListener('click', newGame);
+  shuffleBtnEl.addEventListener('click', () => {
+    if (turn !== 'player' || gameOver || isCpuThinking || swapMode) return;
+    shuffleArray(playerRack);
+    selectedTileIndex = -1;
+    renderRack();
+    showNotification('Rack mescolato!', 1000);
+  });
+
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    showNotification('Menu non disponibile in questa demo.', 1500);
+  });
+
+  newGame();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('Registrazione service worker fallita:', err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
