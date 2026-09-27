@@ -563,6 +563,262 @@
       box-shadow: 0 0px 0 #546e7a;
     }
 
+    .small-close {
+      width: 26px;
+      height: 26px;
+      font-size: 0.8rem;
+      background: rgba(0,0,0,0.25);
+      border: none;
+    }
+
+    .invia-btn {
+      flex: 1;
+      padding: 10px 10px;
+      border-radius: 30px;
+      background: transparent;
+      border: 2px solid rgba(255,255,255,0.8);
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #fff;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: opacity 0.1s, transform 0.08s;
+    }
+
+    .invia-btn:active {
+      transform: scale(0.97);
+    }
+
+    .invia-btn:disabled {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .scambia-btn {
+      flex: 1;
+      padding: 10px 10px;
+      border-radius: 30px;
+      background: linear-gradient(180deg, #ffa726 0%, #f57c00 100%);
+      border: none;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #fff;
+      box-shadow: 0 4px 0 #c25c00, 0 6px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+
+    .scambia-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #c25c00;
+    }
+
+    .bag-pill {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(0,0,0,0.2);
+      border: 2px solid rgba(255,255,255,0.35);
+      border-radius: 20px;
+      padding: 6px 10px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .bag-pill:active {
+      transform: scale(0.95);
+    }
+
+    .bag-pill-icon {
+      font-size: 0.95rem;
+    }
+
+    /* ========== MODALI ========== */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 300;
+    }
+
+    .modal-sheet {
+      background: #fff;
+      width: 100%;
+      max-height: 82%;
+      overflow-y: auto;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -6px 24px rgba(0,0,0,0.4);
+    }
+
+    .modal-header {
+      background: linear-gradient(180deg, #5a9e44 0%, #3d7a2e 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.05rem;
+      padding: 14px 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+    }
+
+    .modal-header .modal-x {
+      position: absolute;
+      right: 14px;
+      top: 10px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .modal-option {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      color: #26401d;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .modal-option:active {
+      background: #f2f2f2;
+    }
+
+    .modal-option-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .modal-toggle {
+      margin-left: auto;
+      width: 42px;
+      height: 24px;
+      border-radius: 14px;
+      background: #ccc;
+      position: relative;
+      transition: background 0.15s;
+    }
+
+    .modal-toggle.on { background: #8bc34a; }
+
+    .modal-toggle::after {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      top: 2px; left: 2px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: left 0.15s;
+    }
+
+    .modal-toggle.on::after { left: 20px; }
+
+    .bag-modal-counts {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      padding: 14px 0 6px;
+    }
+
+    .bag-modal-count {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+      color: #26401d;
+    }
+
+    .bag-modal-total {
+      text-align: center;
+      font-weight: 700;
+      color: #444;
+      padding: 6px 0 12px;
+    }
+
+    .bag-modal-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      padding: 0 14px 14px;
+    }
+
+    .bag-modal-tile {
+      aspect-ratio: 1;
+      background: linear-gradient(180deg, #faf0d0 0%, #e8d8a8 100%);
+      border: 2px solid #d4c090;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .bag-modal-tile .letter { font-weight: 900; font-size: 1.1rem; color: #2d3e1f; }
+    .bag-modal-tile .count { font-size: 0.7rem; color: #6b5a2e; font-weight: 700; }
+
+    .bag-modal-footer {
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 14px 18px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #26401d;
+      border-top: 1px solid #eee;
+    }
+
+    .howto-body { padding: 16px; font-size: 0.9rem; line-height: 1.6; color: #333; }
+
+    .blank-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      padding: 16px;
+    }
+
+    .blank-letter-btn {
+      aspect-ratio: 1;
+      background: linear-gradient(180deg, #faf0d0 0%, #e8d8a8 100%);
+      border: 2px solid #d4c090;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 1.2rem;
+      color: #2d3e1f;
+      cursor: pointer;
+    }
+
+    .blank-letter-btn:active {
+      transform: scale(0.92);
+      background: #ffeb3b;
+    }
+
+    .board-wrapper.zoomed .board {
+      transform: scale(1.15);
+    }
+
     /* ========== NOTIFICATION ========== */
     .notification {
       position: absolute;
@@ -622,6 +878,7 @@
     <div class="header-left">
       <div class="flag-icon"></div>
       <div class="header-message" id="headerMessage">Turno: Tu</div>
+      <div class="icon-btn small-close" id="swapCloseBtn" style="display:none;" title="Annulla cambio">✕</div>
     </div>
     <div class="gem-counter">
       <div class="gem-icon"></div>
@@ -668,15 +925,25 @@
   <div class="bottom-bar">
     <div class="icon-btn" id="menuBtn" title="Menu">☰</div>
     <div class="icon-btn" id="recallBtn" title="Ritira le lettere">↩️</div>
-    <button class="main-action-btn secondary" id="skipBtn" style="flex:0 1 90px; font-size:0.75rem; padding:8px 6px;">PASSA</button>
-    <button class="main-action-btn" id="playBtn" disabled>GIOCA</button>
-    <div class="icon-btn" id="swapBtn" title="Cambia tessere">🔁</div>
+    <button class="invia-btn" id="playBtn" disabled>Invia</button>
+    <button class="scambia-btn" id="confirmSwapBtn" style="display:none;">Scambia &amp; Passa</button>
     <div class="icon-btn" id="shuffleBtn" title="Mescola">🔀</div>
-    <div class="icon-btn" id="newGameBtn" title="Nuova Partita">🔄</div>
+    <div class="bag-pill" id="bagBtn" title="Sacchetto tessere">
+      <span class="bag-pill-icon">💰</span><span id="bottomBagCount">100</span>
+    </div>
+    <!-- elementi mantenuti per compatibilità funzionale, ora richiamabili dal menu Opzioni -->
+    <button id="skipBtn" style="display:none;">PASSA</button>
+    <div id="swapBtn" style="display:none;"></div>
+    <div id="newGameBtn" style="display:none;"></div>
   </div>
 
   <!-- NOTIFICATION -->
   <div class="notification" id="notification"></div>
+
+  <!-- MODALE OPZIONI / SACCHETTO / COME SI GIOCA -->
+  <div class="modal-overlay" id="modalOverlay" style="display:none;">
+    <div class="modal-sheet" id="modalSheet"></div>
+  </div>
 </div>
 
 <script>
@@ -691,16 +958,19 @@
   window.addEventListener('orientationchange', () => setTimeout(setRealViewportHeight, 100));
 
   // ==================== COSTANTI ====================
+  // Valori e distribuzione delle lettere italiane (Scrabble/Scarabeo), 113 tessere totali:
+  // 111 lettere + 2 tessere vuote (jolly), come da sacchetto ufficiale.
   const LETTER_VALUES = {
-    A: 1, B: 5, C: 2, D: 3, E: 1, F: 4, G: 2, H: 4, I: 1,
-    J: 8, K: 5, L: 1, M: 3, N: 1, O: 1, P: 3, Q: 10, R: 1,
-    S: 1, T: 1, U: 1, V: 4, W: 4, X: 8, Y: 4, Z: 10
+    A: 1, B: 5, C: 2, D: 5, E: 1, F: 5, G: 8, H: 8, I: 1,
+    L: 3, M: 3, N: 3, O: 1, P: 5, Q: 10, R: 2, S: 2, T: 2,
+    U: 3, V: 5, Z: 8
   };
 
   const LETTER_DISTRIBUTION = {
-    A: 9, B: 2, C: 2, D: 4, E: 12, F: 2, G: 3, H: 2, I: 9,
-    J: 1, K: 1, L: 4, M: 2, N: 6, O: 8, P: 2, Q: 1, R: 6,
-    S: 4, T: 6, U: 4, V: 2, W: 2, X: 1, Y: 2, Z: 1
+    A: 14, B: 3, C: 6, D: 2, E: 11, F: 3, G: 2, H: 2, I: 11,
+    L: 4, M: 5, N: 5, O: 14, P: 3, Q: 1, R: 6, S: 4, T: 6,
+    U: 5, V: 2, Z: 2,
+    '★': 2   // tessere vuote (jolly): valgono 0 punti e possono sostituire qualsiasi lettera
   };
 
   // Dizionario italiano (parole comuni) usato per validare le parole formate sulla board.
@@ -786,10 +1056,10 @@
 
   // Etichette per le caselle premium
   const PREMIUM_LABELS = {
-    1: 'DL',  // Double Letter
-    2: 'TL',  // Triple Letter
-    3: 'DW',  // Double Word
-    4: 'TW',  // Triple Word
+    1: 'LD',  // Lettera Doppia
+    2: 'LT',  // Lettera Tripla
+    3: 'PD',  // Parola Doppia
+    4: 'PT',  // Parola Tripla
     5: '★'    // Stella centrale
   };
 
@@ -829,6 +1099,13 @@
   const recallBtn = document.getElementById('recallBtn');
   const swapBtn = document.getElementById('swapBtn');
   const shuffleBtnEl = document.getElementById('shuffleBtn');
+  const confirmSwapBtn = document.getElementById('confirmSwapBtn');
+  const swapCloseBtn = document.getElementById('swapCloseBtn');
+  const bagBtn = document.getElementById('bagBtn');
+  const bottomBagCountEl = document.getElementById('bottomBagCount');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalSheet = document.getElementById('modalSheet');
+  let zoomOn = false;
   const bagCountEl = document.getElementById('bagCount');
 
   // ==================== UTILITY ====================
@@ -851,6 +1128,139 @@
 
   function updateBagDisplay() {
     if (bagCountEl) bagCountEl.textContent = bag.length;
+    if (bottomBagCountEl) bottomBagCountEl.textContent = bag.length;
+  }
+
+  // ==================== MODALI (Opzioni / Sacchetto / Come si gioca) ====================
+  function closeModal() {
+    modalOverlay.style.display = 'none';
+    modalSheet.innerHTML = '';
+  }
+
+  function openModal(html) {
+    modalSheet.innerHTML = html;
+    modalOverlay.style.display = 'flex';
+    const x = modalSheet.querySelector('.modal-x');
+    if (x) x.addEventListener('click', closeModal);
+  }
+
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) closeModal();
+  });
+
+  function openOptionsModal() {
+    openModal(`
+      <div class="modal-header">Opzioni<div class="modal-x">✕</div></div>
+      <div class="modal-option" data-action="bag">
+        <div class="modal-option-icon" style="background:#2196f3;">💰</div>
+        Sacchetto delle tessere (rimanenti: ${bag.length})
+      </div>
+      <div class="modal-option" data-action="howto">
+        <div class="modal-option-icon" style="background:#ffb300;">❓</div>
+        Come si gioca
+      </div>
+      <div class="modal-option" data-action="skip">
+        <div class="modal-option-icon" style="background:#7e57c2;">▶</div>
+        Passa il turno
+      </div>
+      <div class="modal-option" data-action="swap">
+        <div class="modal-option-icon" style="background:#29b6f6;">🔁</div>
+        Scambio tessera
+      </div>
+      <div class="modal-option" data-action="newgame">
+        <div class="modal-option-icon" style="background:#e53935;">🚩</div>
+        Annulla partita
+      </div>
+      <div class="modal-option" data-action="zoom">
+        <div class="modal-option-icon" style="background:#26a69a;">🔍</div>
+        Zoom
+        <div class="modal-toggle ${zoomOn ? 'on' : ''}"></div>
+      </div>
+    `);
+    modalSheet.querySelectorAll('.modal-option').forEach(el => {
+      el.addEventListener('click', () => {
+        const action = el.dataset.action;
+        if (action === 'bag') { openBagModal(); }
+        else if (action === 'howto') { openHowToModal(); }
+        else if (action === 'skip') { closeModal(); skipTurn(); }
+        else if (action === 'swap') { closeModal(); toggleSwapMode(); }
+        else if (action === 'newgame') {
+          closeModal();
+          if (confirm('Vuoi davvero annullare la partita in corso?')) newGame();
+        } else if (action === 'zoom') {
+          zoomOn = !zoomOn;
+          document.querySelector('.board-wrapper').classList.toggle('zoomed', zoomOn);
+          el.querySelector('.modal-toggle').classList.toggle('on', zoomOn);
+        }
+      });
+    });
+  }
+
+  function openBagModal() {
+    const vowels = 'AEIOU';
+    let vowelCount = 0, consCount = 0, blankCount = 0;
+    const counts = {};
+    for (const l of bag) {
+      if (l === '★') { blankCount++; continue; }
+      counts[l] = (counts[l] || 0) + 1;
+      if (vowels.includes(l)) vowelCount++; else consCount++;
+    }
+    let tilesHtml = Object.keys(LETTER_VALUES).map(l => {
+      const c = counts[l] || 0;
+      return `<div class="bag-modal-tile" style="${c === 0 ? 'opacity:0.3;' : ''}">
+        <span class="letter">${l}</span><span class="count">${c}</span>
+      </div>`;
+    }).join('');
+    tilesHtml += `<div class="bag-modal-tile" style="${blankCount === 0 ? 'opacity:0.3;' : ''}">
+      <span class="letter">★</span><span class="count">${blankCount}</span>
+    </div>`;
+    openModal(`
+      <div class="modal-header">Sacchetto<div class="modal-x">✕</div></div>
+      <div class="bag-modal-counts">
+        <div class="bag-modal-count">👤 Tu: ${playerRack.length}</div>
+        <div class="bag-modal-count">🤖 CPU: ${cpuRack.length}</div>
+      </div>
+      <div class="bag-modal-total">Tessere ancora nel sacchetto: ${bag.length}</div>
+      <div class="bag-modal-grid">${tilesHtml}</div>
+      <div class="bag-modal-footer">
+        <span>Vocali: ${vowelCount}</span>
+        <span>Consonanti: ${consCount}</span>
+        <span>Vuote: ${blankCount}</span>
+      </div>
+    `);
+  }
+
+  function openHowToModal() {
+    openModal(`
+      <div class="modal-header">Come si gioca<div class="modal-x">✕</div></div>
+      <div class="howto-body">
+        Forma parole sulla griglia incrociando le lettere già presenti.<br><br>
+        La prima parola deve passare per la casella centrale ★.<br><br>
+        Le caselle colorate raddoppiano o triplicano il valore di lettera (LD, LT)
+        o dell'intera parola (PD, PT).<br><br>
+        La tessera vuota (★) vale 0 punti e puoi farla diventare qualsiasi lettera.<br><br>
+        Tocca una lettera nel rack per selezionarla, poi tocca la cella della board
+        dove vuoi piazzarla. Quando la parola è pronta premi <b>Invia</b>.
+      </div>
+    `);
+  }
+
+  function openBlankLetterPicker(callback) {
+    const letters = Object.keys(LETTER_VALUES);
+    const btns = letters.map(l => `<div class="blank-letter-btn" data-l="${l}">${l}</div>`).join('');
+    openModal(`
+      <div class="modal-header">Scegli una lettera<div class="modal-x">✕</div></div>
+      <div class="blank-picker-grid">${btns}</div>
+    `);
+    modalSheet.querySelectorAll('.blank-letter-btn').forEach(el => {
+      el.addEventListener('click', () => {
+        const chosen = el.dataset.l;
+        closeModal();
+        callback(chosen);
+      });
+    });
+    const xBtn = modalSheet.querySelector('.modal-x');
+    if (xBtn) xBtn.addEventListener('click', () => callback(null));
   }
 
   function drawTiles(rack, n) {
@@ -1058,6 +1468,23 @@
     if (rackIndex < 0 || rackIndex >= playerRack.length) return;
 
     const letter = playerRack[rackIndex];
+
+    // Tessera vuota (jolly): chiedi quale lettera rappresenta prima di piazzarla.
+    // Vale 0 punti: la memorizziamo in minuscolo così LETTER_VALUES non la conteggia.
+    if (letter === '★') {
+      openBlankLetterPicker((chosen) => {
+        if (!chosen) return;
+        if (rackIndex >= playerRack.length || playerRack[rackIndex] !== '★') return;
+        playerRack.splice(rackIndex, 1);
+        pendingTiles.push({ row, col, letter: chosen.toLowerCase() });
+        clearSelection();
+        renderRack();
+        renderBoard();
+        syncUI();
+      });
+      return;
+    }
+
     playerRack.splice(rackIndex, 1);
     pendingTiles.push({ row, col, letter });
     clearSelection();
@@ -1119,8 +1546,12 @@
       swapMode = true;
       swapSelection = [];
       clearSelection();
-      playBtn.textContent = 'CONFERMA';
-      skipBtn.textContent = 'ANNULLA';
+      playBtn.style.display = 'none';
+      recallBtn.style.display = 'none';
+      shuffleBtnEl.style.display = 'none';
+      bagBtn.style.display = 'none';
+      confirmSwapBtn.style.display = 'block';
+      swapCloseBtn.style.display = 'flex';
       renderRack();
       showNotification('Tocca le lettere da cambiare, poi conferma.', 2200);
       syncUI();
@@ -1132,8 +1563,12 @@
   function exitSwapMode() {
     swapMode = false;
     swapSelection = [];
-    playBtn.textContent = 'GIOCA';
-    skipBtn.textContent = 'PASSA';
+    playBtn.style.display = '';
+    recallBtn.style.display = '';
+    shuffleBtnEl.style.display = '';
+    bagBtn.style.display = '';
+    confirmSwapBtn.style.display = 'none';
+    swapCloseBtn.style.display = 'none';
     renderRack();
     syncUI();
   }
@@ -1849,9 +2284,10 @@
     showNotification('Rack mescolato!', 1000);
   });
 
-  document.getElementById('menuBtn').addEventListener('click', () => {
-    showNotification('Menu non disponibile in questa demo.', 1500);
-  });
+  document.getElementById('menuBtn').addEventListener('click', openOptionsModal);
+  bagBtn.addEventListener('click', openBagModal);
+  confirmSwapBtn.addEventListener('click', confirmSwap);
+  swapCloseBtn.addEventListener('click', exitSwapMode);
 
   newGame();
 
