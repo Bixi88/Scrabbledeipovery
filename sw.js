@@ -4,7 +4,7 @@
 // Quando aggiorni index.html o sostituisci dizionario.txt con una lista più
 // grande, alza il numero di CACHE_VERSION qui sotto: forza tutti i dispositivi
 // a scaricare di nuovo i file aggiornati invece di usare la vecchia copia in cache.
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `scrabble-go-${CACHE_VERSION}`;
 
 // File da salvare subito all'installazione. dizionario.txt è opzionale: se non
