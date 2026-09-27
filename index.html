@@ -994,36 +994,36 @@
   const ITALIAN_WORDS = new Set(ITALIAN_WORDS_RAW.split(' '));
 
   // ==================== DIZIONARIO ESTERNO (opzionale) ====================
-  // Se nella stessa cartella di questo index.html è presente un file "dizionario.txt"
-  // (una parola per riga o separate da spazi), viene caricato e le sue parole si
-  // AGGIUNGONO a quelle di ITALIAN_WORDS_RAW qui sopra (che resta il dizionario di
-  // riserva, sempre disponibile offline anche se il file esterno manca o il
-  // dispositivo è offline al primo avvio).
+  // Se nella stessa cartella di questo index.html sono presenti i file
+  // "dizionario.txt" e/o "dizionario2.txt" (una parola per riga o separate da
+  // spazi), vengono caricati e le loro parole si AGGIUNGONO a quelle di
+  // ITALIAN_WORDS_RAW qui sopra (che resta il dizionario di riserva, sempre
+  // disponibile offline anche se i file esterni mancano o il dispositivo è
+  // offline al primo avvio).
   //
-  // Il file viene salvato nella Cache Storage del browser dopo il primo download,
-  // così le partite successive funzionano anche offline (come sw.js fa per gli
-  // altri asset). Basta mettere un dizionario.txt più ampio (es. una delle liste
-  // MIT di github.com/napolux/paroleitaliane, che includono forme flesse: plurali,
-  // coniugazioni verbali ecc., senza nomi propri) nella stessa cartella di questo
-  // file per aumentare drasticamente le parole accettate, senza toccare il codice.
-  const DICTIONARY_URL = 'dizionario.txt';
-  const DICTIONARY_CACHE_NAME = 'scrabble-dizionario-v1';
+  // dizionario2.txt è pensato apposta per essere un file "di lavoro" che tieni
+  // aggiornato tu direttamente nella repository, aggiungendo di volta in volta
+  // le parole mancanti in dizionario.txt: ogni file viene scaricato dalla rete
+  // ad ogni caricamento della pagina (così le modifiche pubblicate su GitHub
+  // sono subito effettive), con la copia in Cache Storage usata solo come
+  // riserva se il dispositivo è offline.
+  const DICTIONARY_CACHE_NAME = 'scrabble-dizionario-v2';
 
-  async function loadExternalDictionary() {
+  async function loadExternalDictionary(url) {
     try {
       let response = null;
-      if ('caches' in window) {
-        const cache = await caches.open(DICTIONARY_CACHE_NAME);
-        response = await cache.match(DICTIONARY_URL);
-        if (!response) {
-          const fresh = await fetch(DICTIONARY_URL, { cache: 'no-cache' });
-          if (fresh && fresh.ok) {
-            cache.put(DICTIONARY_URL, fresh.clone());
-            response = fresh;
-          }
+      try {
+        response = await fetch(url, { cache: 'no-cache' });
+        if (response && response.ok && 'caches' in window) {
+          const cache = await caches.open(DICTIONARY_CACHE_NAME);
+          cache.put(url, response.clone());
         }
-      } else {
-        response = await fetch(DICTIONARY_URL, { cache: 'force-cache' });
+      } catch (networkErr) {
+        // Offline: prova a recuperare l'ultima copia salvata in cache.
+        if ('caches' in window) {
+          const cache = await caches.open(DICTIONARY_CACHE_NAME);
+          response = await cache.match(url);
+        }
       }
       if (!response || !response.ok) return;
       const text = await response.text();
@@ -1037,15 +1037,16 @@
         ITALIAN_WORDS.add(w);
       }
       if (added > 0) {
-        console.log(`Dizionario esterno caricato: +${added} parole (totale: ${ITALIAN_WORDS.size}).`);
+        console.log(`Dizionario esterno "${url}" caricato: +${added} parole (totale: ${ITALIAN_WORDS.size}).`);
       }
     } catch (err) {
-      // Nessun dizionario.txt trovato, o offline al primo avvio: si continua
+      // Nessun file trovato, o offline al primo avvio: si continua
       // tranquillamente con il solo dizionario di base già incluso nel file.
-      console.warn('Dizionario esterno non caricato, uso solo il dizionario integrato.', err);
+      console.warn(`Dizionario esterno "${url}" non caricato.`, err);
     }
   }
-  loadExternalDictionary();
+  loadExternalDictionary('dizionario.txt');
+  loadExternalDictionary('dizionario2.txt');
 
   const BOARD_SIZE = 15;
   const CENTER = 7;
@@ -1200,7 +1201,7 @@
         else if (action === 'swap') { closeModal(); toggleSwapMode(); }
         else if (action === 'newgame') {
           closeModal();
-          if (confirm('Vuoi davvero annullare la partita in corso?')) newGame();
+          if (confirm('Vuoi davvero annullare la partita in corso?')) { clearSavedGame(); newGame(); }
         } else if (action === 'zoom') {
           zoomOn = !zoomOn;
           document.querySelector('.board-wrapper').classList.toggle('zoomed', zoomOn);
@@ -1299,6 +1300,8 @@
 
   // Aggiorna messaggio in testata + stato pulsanti in base a turno e tessere in sospeso
   function syncUI() {
+    saveGameState();
+
     if (gameOver) { skipBtn.disabled = true; playBtn.disabled = true; return; }
 
     if (turn !== 'player') {
@@ -1505,7 +1508,7 @@
         if (!chosen) return;
         if (rackIndex >= playerRack.length || playerRack[rackIndex] !== '★') return;
         playerRack.splice(rackIndex, 1);
-        pendingTiles.push({ row, col, letter: chosen.toLowerCase() });
+        pendingTiles.push({ row, col, letter: chosen.toLowerCase(), isBlank: true });
         clearSelection();
         renderRack();
         renderBoard();
@@ -1515,7 +1518,7 @@
     }
 
     playerRack.splice(rackIndex, 1);
-    pendingTiles.push({ row, col, letter });
+    pendingTiles.push({ row, col, letter, isBlank: false });
     clearSelection();
     renderRack();
     renderBoard();
@@ -1527,7 +1530,24 @@
   function recallPendingTileAt(row, col) {
     const pendIdx = pendingTiles.findIndex(t => t.row === row && t.col === col);
     if (pendIdx === -1) return false;
-    const [tile] = pendingTiles.splice(pendIdx, 1);
+    const tile = pendingTiles[pendIdx];
+
+    // La tessera vuota (jolly) può cambiare lettera in qualsiasi momento finché non
+    // hai confermato la mossa: toccandola di nuovo si riapre la scelta, invece di
+    // ritirarla in mano.
+    if (tile.isBlank) {
+      openBlankLetterPicker((chosen) => {
+        if (!chosen) return;
+        const stillIdx = pendingTiles.findIndex(t => t.row === row && t.col === col);
+        if (stillIdx === -1) return;
+        pendingTiles[stillIdx].letter = chosen.toLowerCase();
+        renderBoard();
+        syncUI();
+      });
+      return true;
+    }
+
+    pendingTiles.splice(pendIdx, 1);
     playerRack.push(tile.letter);
     renderRack();
     renderBoard();
@@ -1558,7 +1578,7 @@
 
   function recallAll() {
     if (pendingTiles.length === 0) return;
-    for (const t of pendingTiles) playerRack.push(t.letter);
+    for (const t of pendingTiles) playerRack.push(t.isBlank ? '★' : t.letter);
     pendingTiles = [];
     clearSelection();
     renderRack();
@@ -1815,7 +1835,7 @@
         const isFree = board[tr][tc] === null && !pendingTiles.some(t => t.row === tr && t.col === tc);
         if (!isSame && isFree) {
           const idx = pendingTiles.findIndex(t => t.row === fromRow && t.col === fromCol);
-          if (idx !== -1) pendingTiles[idx] = { row: tr, col: tc, letter: pendingTiles[idx].letter };
+          if (idx !== -1) pendingTiles[idx] = { row: tr, col: tc, letter: pendingTiles[idx].letter, isBlank: pendingTiles[idx].isBlank };
         }
         // Se la casella target non è valida (occupata o è la stessa), la tessera
         // resta semplicemente dov'era: nessuna modifica da fare.
@@ -2303,6 +2323,7 @@
     gameOver = true;
     turn = 'none';
     isCpuThinking = false;
+    saveGameState();
     let msg = `Partita finita! Tu: ${playerScore} - CPU: ${cpuScore}. `;
     if (playerScore > cpuScore) msg += 'Hai vinto! 🎉';
     else if (playerScore < cpuScore) msg += 'CPU vince.';
@@ -2317,6 +2338,81 @@
   }
 
   // ==================== NUOVA PARTITA ====================
+  // ==================== PARTITA SALVATA (localStorage) ====================
+  // Ad ogni cambio di stato la partita viene salvata in locale sul dispositivo:
+  // se chiudi o ricarichi la pagina (anche per un aggiornamento automatico della
+  // webapp), al riavvio ritrovi la stessa identica partita ancora attiva.
+  const SAVE_KEY = 'scrabbleGoPoveryPartitaSalvata';
+
+  function saveGameState() {
+    try {
+      const state = {
+        v: 1,
+        board, playerRack, cpuRack, bag,
+        playerScore, cpuScore, turn, gameOver,
+        firstMoveDone, gems, pendingTiles
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (err) {
+      console.warn('Impossibile salvare la partita in locale:', err);
+    }
+  }
+
+  function clearSavedGame() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (err) { /* ignora */ }
+  }
+
+  // Prova a ripristinare l'ultima partita salvata. Restituisce true se ci è
+  // riuscita (e in tal caso NON va chiamata newGame()).
+  function loadSavedGame() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const state = JSON.parse(raw);
+      if (!state || !Array.isArray(state.board)) return false;
+
+      board = state.board;
+      playerRack = Array.isArray(state.playerRack) ? state.playerRack : [];
+      cpuRack = Array.isArray(state.cpuRack) ? state.cpuRack : [];
+      bag = Array.isArray(state.bag) ? state.bag : [];
+      playerScore = state.playerScore || 0;
+      cpuScore = state.cpuScore || 0;
+      turn = (state.turn === 'cpu' || state.turn === 'none') ? state.turn : 'player';
+      gameOver = !!state.gameOver;
+      firstMoveDone = !!state.firstMoveDone;
+      gems = typeof state.gems === 'number' ? state.gems : 123;
+      pendingTiles = Array.isArray(state.pendingTiles) ? state.pendingTiles : [];
+      swapMode = false;
+      swapSelection = [];
+      clearSelection();
+
+      document.getElementById('gemCount').textContent = gems;
+      updateBagDisplay();
+      updateScores();
+      renderBoard();
+      renderRack();
+      updateTurnIndicator();
+
+      if (gameOver) {
+        headerMessageEl.textContent = 'Partita conclusa';
+        syncUI();
+      } else if (turn === 'cpu') {
+        // La partita era stata chiusa mentre toccava alla CPU: le facciamo
+        // giocare la mossa che aveva in sospeso.
+        isCpuThinking = true;
+        syncUI();
+        setTimeout(cpuMove, 900);
+      } else {
+        syncUI();
+        showNotification('Partita ripresa da dove l\'avevi lasciata.', 1800);
+      }
+      return true;
+    } catch (err) {
+      console.warn('Impossibile ripristinare la partita salvata:', err);
+      return false;
+    }
+  }
+
   function newGame() {
     board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(null));
     bag = createBag();
@@ -2330,8 +2426,7 @@
     pendingTiles = [];
     swapMode = false;
     swapSelection = [];
-    playBtn.textContent = 'GIOCA';
-    skipBtn.textContent = 'PASSA';
+    playBtn.textContent = 'Invia';
     turn = 'player';
     gameOver = false;
     firstMoveDone = false;
@@ -2367,12 +2462,41 @@
   confirmSwapBtn.addEventListener('click', confirmSwap);
   swapCloseBtn.addEventListener('click', exitSwapMode);
 
-  newGame();
+  if (!loadSavedGame()) newGame();
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err => {
+      navigator.serviceWorker.register('sw.js').then((registration) => {
+        // Appena c'è un nuovo service worker installato e pronto, digli di
+        // subentrare subito invece di aspettare che tutte le schede si chiudano.
+        function activateNewWorker(worker) {
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              worker.postMessage('skipWaiting');
+            }
+          });
+        }
+        activateNewWorker(registration.installing);
+        registration.addEventListener('updatefound', () => activateNewWorker(registration.installing));
+
+        // Controlla periodicamente (e quando l'app torna in primo piano) se è
+        // stato pubblicato un nuovo commit, senza aspettare una ricarica manuale.
+        setInterval(() => registration.update().catch(() => {}), 60000);
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') registration.update().catch(() => {});
+        });
+      }).catch(err => {
         console.warn('Registrazione service worker fallita:', err);
+      });
+
+      // Quando il nuovo service worker prende il controllo della pagina, la
+      // webapp si aggiorna da sola ricaricandosi (una sola volta).
+      let refreshingAfterUpdate = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshingAfterUpdate) return;
+        refreshingAfterUpdate = true;
+        window.location.reload();
       });
     });
   }

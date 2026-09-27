@@ -1,18 +1,18 @@
 // Service worker di "Scrabble GO · CPU".
-// Pre-cachea il gioco e il dizionario così funziona anche offline dal secondo avvio.
-//
-// Quando aggiorni index.html o sostituisci dizionario.txt con una lista più
-// grande, alza il numero di CACHE_VERSION qui sotto: forza tutti i dispositivi
-// a scaricare di nuovo i file aggiornati invece di usare la vecchia copia in cache.
-const CACHE_VERSION = 'v1';
-const CACHE_NAME = `scrabble-go-${CACHE_VERSION}`;
+// Pre-cachea il gioco e i dizionari così funziona anche offline dal secondo avvio,
+// ma dà sempre priorità alla rete: appena pubblichi un commit su GitHub, il primo
+// dispositivo online lo scarica subito (niente più bisogno di alzare a mano un
+// numero di versione o svuotare la cache).
+const CACHE_NAME = 'scrabble-go-v2-network-first';
 
-// File da salvare subito all'installazione. dizionario.txt è opzionale: se non
-// esiste ancora nel repo, il precache degli altri file riesce comunque.
+// File da salvare subito all'installazione. dizionario.txt/dizionario2.txt sono
+// opzionali: se non esistono ancora nel repo, il precache degli altri file riesce
+// comunque.
 const CORE_ASSETS = [
   './',
   './index.html',
   './dizionario.txt',
+  './dizionario2.txt',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -26,7 +26,7 @@ self.addEventListener('install', (event) => {
       return Promise.all(
         CORE_ASSETS.map((url) =>
           cache.add(url).catch((err) => {
-            // Non blocchiamo l'installazione se manca un file opzionale (es. dizionario.txt).
+            // Non blocchiamo l'installazione se manca un file opzionale.
             console.warn(`[sw] impossibile pre-cacheare ${url}:`, err);
           })
         )
@@ -47,25 +47,28 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Strategia: cache-first con aggiornamento in background ("stale-while-revalidate").
-// L'utente vede subito la versione in cache (anche offline); se c'è rete, la cache
-// viene aggiornata silenziosamente per la volta successiva.
+// Strategia: network-first. Prova sempre a scaricare l'ultima versione dalla
+// rete (così ogni commit arriva subito); se non c'è rete, usa la copia salvata
+// in cache come riserva offline.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const networkFetch = fetch(event.request)
-        .then((response) => {
-          if (response && response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached); // offline: se la rete fallisce, resta la cache
-
-      return cached || networkFetch;
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
+});
+
+// Quando index.html scopre una nuova versione del service worker già pronta,
+// le manda questo messaggio per farla subentrare subito (vedi register() in
+// index.html): senza aspettare che tutte le schede vengano chiuse.
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
