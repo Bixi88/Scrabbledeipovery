@@ -1562,8 +1562,25 @@
     selectedTileIndex = -1;
   }
 
+  // Si possono piazzare/spostare/ritirare tessere (bozza) anche quando è il turno dell'avversario
+  // o della CPU, per provare le combinazioni: solo l'invio resta riservato al proprio turno.
+  // Durante l'invio online (turn 'player' + isCpuThinking) resta tutto bloccato.
+  function canEditDraft() {
+    if (gameOver) return false;
+    if (turn === 'player') return !isCpuThinking;
+    return turn === 'cpu' || turn === 'opponent';
+  }
+
+  // Quando l'altro invia una parola, tutte le tessere di prova tornano in mano (il jolly torna ★).
+  function recallDraftAfterOpponentWord() {
+    const n = pendingTiles.length;
+    for (const t of pendingTiles) playerRack.push(t.isBlank ? '★' : t.letter);
+    pendingTiles = [];
+    return n;
+  }
+
   function toggleSelectTile(index) {
-    if (turn !== 'player' || gameOver || isCpuThinking) return;
+    if (!canEditDraft()) return;
     selectedTileIndex = (selectedTileIndex === index) ? -1 : index;
     renderRack();
     if (selectedTileIndex !== -1) {
@@ -1572,7 +1589,7 @@
   }
 
   function placeTileAt(row, col, rackIndex) {
-    if (turn !== 'player' || gameOver || isCpuThinking) return;
+    if (!canEditDraft()) return;
     if (board[row][col] !== null) { showNotification('Cella già occupata!', 1200); return; }
     if (pendingTiles.some(t => t.row === row && t.col === col)) return;
     if (rackIndex < 0 || rackIndex >= playerRack.length) return;
@@ -1642,7 +1659,7 @@
   }
 
   function handleCellClick(row, col) {
-    if (turn !== 'player' || gameOver || isCpuThinking) return;
+    if (!canEditDraft()) return;
     // Subito dopo un trascinamento sulla board arriva anche un "click" fantasma
     // sullo stesso tocco: lo ignoriamo perché l'azione è già stata gestita.
     if (Date.now() - lastBoardDragEndAt < 300) return;
@@ -1747,7 +1764,7 @@
   // ---------- Drag & drop tramite Pointer Events (nessuno zoom della board) ----------
   function attachRackDrag(slot, index) {
     slot.addEventListener('pointerdown', (e) => {
-      if (turn !== 'player' || gameOver || isCpuThinking) return;
+      if (!canEditDraft()) return;
       if (index >= playerRack.length) return;
       e.preventDefault();
 
@@ -1865,7 +1882,7 @@
   // ---------- Trascinamento di una tessera già piazzata (pending) tra caselle ----------
   function attachBoardTileDrag(cellEl, row, col) {
     cellEl.addEventListener('pointerdown', (e) => {
-      if (turn !== 'player' || gameOver || isCpuThinking) return;
+      if (!canEditDraft()) return;
       const pending = pendingTiles.find(t => t.row === row && t.col === col);
       if (!pending) return;
       e.preventDefault();
@@ -2041,7 +2058,7 @@
     const wr = wrapper.getBoundingClientRect();
     const cellEl = (r, c) => boardEl.children[r * BOARD_SIZE + c];
 
-    if (pendingTiles.length > 0 && turn === 'player' && !swapMode) {
+    if (pendingTiles.length > 0 && !gameOver && !swapMode) {
       const words = computePreviewWords(pendingTiles);
       if (words.length) {
         const result = validateAndScoreMove(pendingTiles);
@@ -2319,6 +2336,7 @@
     const move = findCpuMove();
     if (move) {
       commitMove(move.tiles);
+      const draftDropped = recallDraftAfterOpponentWord();
       const lastTile = move.tiles[move.tiles.length - 1];
       lastMove = { row: lastTile.row, col: lastTile.col, score: move.score, cells: move.tiles.map(t => [t.row, t.col]) };
       cpuScore += move.score;
@@ -2330,8 +2348,9 @@
       updateScores();
       renderBoard();
       const wordsLabel = (move.words && move.words.length) ? move.words.join(', ') : '';
-      showNotification(`CPU ha giocato ${wordsLabel} per ${move.score} punti!`, 2500);
+      showNotification(`CPU ha giocato ${wordsLabel} per ${move.score} punti!` + (draftDropped ? ' · le tue tessere sono tornate in mano' : ''), 2500);
     } else {
+      recallDraftAfterOpponentWord();
       const swapped = cpuTrySwap();
       if (swapped > 0) {
         showNotification(`CPU ha cambiato ${swapped} tessere.`, 1800);
@@ -3292,6 +3311,8 @@
     if (swapMode) exitSwapMode();
     if (modalOverlay.style.display !== 'none') closeModal();
 
+    const oldRack = playerRack, oldPending = pendingTiles;
+    let draftDropped = 0;
     const slot = d.players.indexOf(mp.uid), opp = 1 - slot;
     mp.game = d; mp.slot = slot; mp.oppName = d.names[opp] || 'Avversario';
     mp.appliedVersion = d.version;
@@ -3305,6 +3326,23 @@
     firstMoveDone = !!d.firstMoveDone;
     gameOver = d.status === 'finished';
     pendingTiles = [];                        // la bozza resta solo locale
+    // Se il mio rack non è cambiato (ha mosso l'avversario) conservo l'ordine locale del rack.
+    // Qualunque mossa faccia l'avversario (parola, passo, cambio) tutte le tessere di prova tornano in mano. Dopo una mia mossa il rack cambia e si riparte pulito.
+    if (!firstApply && (oldRack.length + oldPending.length) > 0) {
+      const oldAll = oldRack.concat(oldPending.map(t => t.isBlank ? '★' : t.letter));
+      if (oldAll.slice().sort().join('') === playerRack.slice().sort().join('')) {
+        const dm = d.moves || [];
+        const lastMv = dm[dm.length - 1];
+        playerRack = oldRack.slice();
+        if (lastMv && lastMv.by !== slot) {
+          pendingTiles = oldPending.slice();
+          draftDropped = recallDraftAfterOpponentWord();
+        } else {
+          pendingTiles = oldPending.filter(t => board[t.row][t.col] === null);
+          for (const t of oldPending) if (board[t.row][t.col] !== null) playerRack.push(t.isBlank ? '★' : t.letter);
+        }
+      }
+    }
     swapSelection = [];
     clearSelection();
     isCpuThinking = false;
@@ -3338,7 +3376,7 @@
       syncUI();
       const last = moves[moves.length - 1];
       if (last && last.by !== slot) {
-        showNotification(mpMoveText(d, last, slot) + (firstApply ? ' · ' + mpAgo(last.t) : ''), 3500);
+        showNotification(mpMoveText(d, last, slot) + (firstApply ? ' · ' + mpAgo(last.t) : '') + (draftDropped ? ' · le tue tessere sono tornate in mano' : ''), 3500);
       }
     }
   }
@@ -3617,7 +3655,7 @@
   swapBtn.addEventListener('click', toggleSwapMode);
   document.getElementById('newGameBtn').addEventListener('click', newGame);
   shuffleBtnEl.addEventListener('click', () => {
-    if (turn !== 'player' || gameOver || isCpuThinking || swapMode) return;
+    if (!canEditDraft() || swapMode) return;
     shuffleArray(playerRack);
     selectedTileIndex = -1;
     renderRack();
