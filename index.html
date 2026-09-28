@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Scrabble GO · CPU</title>
+  <title>SCRABBLEdeipovery</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4e9f5f">
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Scrabble GO">
+  <meta name="apple-mobile-web-app-title" content="SCRABBLEdeipovery">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
 
@@ -298,20 +298,21 @@
     .cell.occupied {
       background: #f5e6b8;
       color: #1a1a1a;
-      font-weight: 700;
-      font-size: calc(var(--cell, 24px) * 0.54);
-      padding: 0 calc(var(--cell, 24px) * 0.1) calc(var(--cell, 24px) * 0.14) 0;
+      font-weight: 800;
+      font-size: calc(var(--cell, 24px) * 0.68);
+      line-height: 1;
+      padding: 0;
       border: 1px solid #d4c090;
       z-index: 5;
     }
 
     .cell.occupied .tile-points {
       position: absolute;
-      bottom: calc(var(--cell, 24px) * 0.05);
-      right: calc(var(--cell, 24px) * 0.08);
-      font-size: calc(var(--cell, 24px) * 0.26);
-      font-weight: 600;
-      color: #3d3413;
+      bottom: calc(var(--cell, 24px) * 0.04);
+      right: calc(var(--cell, 24px) * 0.07);
+      font-size: calc(var(--cell, 24px) * 0.22);
+      font-weight: 500;
+      color: #222;
       line-height: 1;
     }
 
@@ -334,20 +335,21 @@
     .cell.pending {
       background: #fdf6d8;
       color: #1a1a1a;
-      font-weight: 700;
-      font-size: calc(var(--cell, 24px) * 0.54);
-      padding: 0 calc(var(--cell, 24px) * 0.1) calc(var(--cell, 24px) * 0.14) 0;
+      font-weight: 800;
+      font-size: calc(var(--cell, 24px) * 0.68);
+      line-height: 1;
+      padding: 0;
       border: 1px solid #d4c090;
       z-index: 6;
     }
 
     .cell.pending .tile-points {
       position: absolute;
-      bottom: calc(var(--cell, 24px) * 0.05);
-      right: calc(var(--cell, 24px) * 0.08);
-      font-size: calc(var(--cell, 24px) * 0.26);
-      font-weight: 600;
-      color: #3d3413;
+      bottom: calc(var(--cell, 24px) * 0.04);
+      right: calc(var(--cell, 24px) * 0.07);
+      font-size: calc(var(--cell, 24px) * 0.22);
+      font-weight: 500;
+      color: #222;
       line-height: 1;
     }
 
