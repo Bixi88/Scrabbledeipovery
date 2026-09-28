@@ -1,6 +1,6 @@
 {
-  "name": "Scrabble GO",
-  "short_name": "Scrabble GO",
+  "name": "SCRABBLEdeipovery",
+  "short_name": "SCRABBLEdeipovery",
   "description": "Scrabble in italiano: sfida la CPU (anche offline) o gioca a distanza, ognuno quando può.",
   "start_url": "./index.html",
   "scope": "./",
