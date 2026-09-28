@@ -56,7 +56,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 14px;
+      padding: 4px 12px;
       background: linear-gradient(180deg, #6ecf6e 0%, #4da84d 100%);
       color: white;
       font-weight: 700;
@@ -127,31 +127,31 @@
       align-items: center;
       justify-content: space-between;
       background: linear-gradient(180deg, #8fe02a 0%, #6cb818 100%);
-      padding: 8px 16px;
+      padding: 3px 14px;
       flex-shrink: 0;
       position: relative;
-      border-bottom: 3px solid #5a9e14;
+      border-bottom: 2px solid #5a9e14;
     }
 
     .player-side {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      width: 100px;
+      gap: 1px;
+      width: 90px;
     }
 
     .avatar {
-      width: 48px;
-      height: 48px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      border: 3px solid #fff;
+      border: 2px solid #fff;
       background: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      font-size: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       overflow: hidden;
       position: relative;
     }
@@ -167,14 +167,14 @@
     }
 
     .player-name {
-      font-size: 0.7rem;
+      font-size: 0.6rem;
       font-weight: 700;
       color: #1a4a1a;
       text-shadow: 0 1px 0 rgba(255,255,255,0.3);
     }
 
     .player-score {
-      font-size: 1.6rem;
+      font-size: 1.15rem;
       font-weight: 900;
       color: #fff;
       text-shadow: 2px 2px 0 rgba(0,0,0,0.15);
@@ -182,11 +182,11 @@
     }
 
     .center-turn-indicator {
-      width: 70px;
-      height: 70px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: radial-gradient(circle at 40% 35%, #e8f5e0, #a8d080);
-      border: 3px solid #fff;
+      border: 2px solid #fff;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -196,7 +196,7 @@
     }
 
     .turn-letter {
-      font-size: 2rem;
+      font-size: 1.3rem;
       font-weight: 900;
       color: #4a8a2a;
       text-shadow: 1px 1px 0 #fff;
@@ -216,7 +216,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 6px 4px;
+      padding: 2px 2px;
       background: #b8d4b0;
       min-height: 0;
       position: relative;
@@ -229,7 +229,7 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
       width: 100%;
       height: 100%;
-      max-width: 480px;
+      max-width: 600px;
       max-height: 100%;
       aspect-ratio: 1/1;
       display: flex;
@@ -357,34 +357,59 @@
       line-height: 1;
     }
 
-    /* Cornice live che avvolge la parola in formazione: verde se valida, rossa se no.
-       Si applica sia alle tessere appena piazzate sia a quelle già confermate che fanno
-       parte della stessa parola, così l'intera parola risulta incorniciata. */
-    .cell.word-frame-valid {
-      border: 2px solid #2e7d32 !important;
-      box-shadow: inset 0 0 0 1px rgba(46,125,50,0.5);
-      z-index: 8;
-    }
-
-    .cell.word-frame-invalid {
-      border: 2px solid #c62828 !important;
-      box-shadow: inset 0 0 0 1px rgba(198,40,40,0.5);
-      z-index: 8;
-    }
-
-    .cell.pending.preview-end .score-bubble {
+    /* Livello sopra il tabellone con cornici parola e badge punteggio */
+    .board-wrapper { position: relative; }
+    .board-overlay {
       position: absolute;
-      top: -7px;
-      right: -7px;
+      inset: 0;
+      pointer-events: none;
+      z-index: 30;
+    }
+    .word-frame {
+      position: absolute;
+      box-sizing: border-box;
+      border: 3px solid #2e7d32;
+      border-radius: 9px;
+    }
+    .word-frame.invalid { border-color: #c62828; }
+    .score-badge {
+      position: absolute;
+      width: 24px;
+      height: 24px;
       background: #2e7d32;
-      color: #fff;
-      font-size: 0.5rem;
-      font-weight: 800;
-      padding: 2px 5px;
-      border-radius: 10px;
+      border: 2px solid #fff;
+      border-radius: 6px;
+      transform: translate(-50%, -50%) rotate(45deg);
       box-shadow: 0 2px 4px rgba(0,0,0,0.35);
-      z-index: 20;
-      white-space: nowrap;
+    }
+    .score-badge span {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: rotate(-45deg);
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 800;
+    }
+    .last-move-badge {
+      position: absolute;
+      min-width: 17px;
+      height: 17px;
+      padding: 0 3px;
+      box-sizing: border-box;
+      background: #1a3cff;
+      color: #fff;
+      border: 2px solid #fff;
+      border-radius: 10px;
+      font-size: 0.55rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
     }
 
     /* Tessera "fantasma" che segue il dito durante il trascinamento (niente zoom di schermata) */
@@ -829,9 +854,6 @@
       background: #ffeb3b;
     }
 
-    .board-wrapper.zoomed .board {
-      transform: scale(1.15);
-    }
 
     /* ========== NOTIFICATION ========== */
     .notification {
@@ -862,26 +884,6 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    .cpu-rack-preview {
-      display: flex;
-      gap: 4px;
-      justify-content: center;
-      padding: 4px 0 0;
-    }
-
-    .cpu-tile-mini {
-      width: 28px;
-      height: 28px;
-      background: linear-gradient(180deg, #9a7040 0%, #7a5020 100%);
-      border-radius: 5px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: rgba(255,255,255,0.4);
-      font-size: 0.8rem;
-      font-weight: 700;
-    }
-
     ::-webkit-scrollbar { display: none; }
   </style>
 </head>
@@ -901,7 +903,6 @@
   </div>
 
   <!-- SACCHETTO TESSERE -->
-  <div class="bag-bar" id="bagBar">🎒 Sacchetto: <span id="bagCount">86</span> tessere rimaste</div>
 
   <!-- PLAYER PANEL -->
   <div class="player-panel">
@@ -932,7 +933,6 @@
   <!-- RACK -->
   <div class="rack-section">
     <div class="rack-slots" id="rackSlots"></div>
-    <div class="cpu-rack-preview" id="cpuRackPreview"></div>
   </div>
 
   <!-- BOTTOM BAR -->
@@ -1092,6 +1092,7 @@
   let bag = [];
   let gems = 123;
   let isCpuThinking = false;
+  let lastMove = null;          // ultima parola della CPU (per il badge blu)
   let dragState = null;         // stato del trascinamento in corso (dal rack)
   let boardDragState = null;    // stato del trascinamento di una tessera già piazzata (pending) sulla board
   let lastBoardDragEndAt = 0;   // timestamp per ignorare il "click" fantasma dopo un drag sulla board
@@ -1103,7 +1104,6 @@
   // ==================== DOM ====================
   const boardEl = document.getElementById('board');
   const rackSlotsEl = document.getElementById('rackSlots');
-  const cpuRackPreviewEl = document.getElementById('cpuRackPreview');
   const playerScoreEl = document.getElementById('playerScoreDisplay');
   const cpuScoreEl = document.getElementById('cpuScoreDisplay');
   const headerMessageEl = document.getElementById('headerMessage');
@@ -1120,7 +1120,6 @@
   const bottomBagCountEl = document.getElementById('bottomBagCount');
   const modalOverlay = document.getElementById('modalOverlay');
   const modalSheet = document.getElementById('modalSheet');
-  let zoomOn = false;
   const bagCountEl = document.getElementById('bagCount');
 
   // ==================== UTILITY ====================
@@ -1184,12 +1183,7 @@
       </div>
       <div class="modal-option" data-action="newgame">
         <div class="modal-option-icon" style="background:#e53935;">🚩</div>
-        Annulla partita
-      </div>
-      <div class="modal-option" data-action="zoom">
-        <div class="modal-option-icon" style="background:#26a69a;">🔍</div>
-        Zoom
-        <div class="modal-toggle ${zoomOn ? 'on' : ''}"></div>
+        Nuova partita
       </div>
     `);
     modalSheet.querySelectorAll('.modal-option').forEach(el => {
@@ -1201,11 +1195,7 @@
         else if (action === 'swap') { closeModal(); toggleSwapMode(); }
         else if (action === 'newgame') {
           closeModal();
-          if (confirm('Vuoi davvero annullare la partita in corso?')) { clearSavedGame(); newGame(); }
-        } else if (action === 'zoom') {
-          zoomOn = !zoomOn;
-          document.querySelector('.board-wrapper').classList.toggle('zoomed', zoomOn);
-          el.querySelector('.modal-toggle').classList.toggle('on', zoomOn);
+          if (confirm('Vuoi iniziare una nuova partita? Quella in corso andrà persa.')) { clearSavedGame(); newGame(); }
         }
       });
     });
@@ -1260,13 +1250,16 @@
     `);
   }
 
-  function openBlankLetterPicker(callback) {
+  function openBlankLetterPicker(callback, allowRecall) {
     const letters = Object.keys(LETTER_VALUES);
     const btns = letters.map(l => `<div class="blank-letter-btn" data-l="${l}">${l}</div>`).join('');
     openModal(`
       <div class="modal-header">Scegli una lettera<div class="modal-x">✕</div></div>
       <div class="blank-picker-grid">${btns}</div>
+      ${allowRecall ? '<div class="modal-option" id="blankRecall" style="justify-content:center;">↩ Rimetti in mano</div>' : ''}
     `);
+    const rec = modalSheet.querySelector('#blankRecall');
+    if (rec) rec.addEventListener('click', () => { closeModal(); callback('RECALL'); });
     modalSheet.querySelectorAll('.blank-letter-btn').forEach(el => {
       el.addEventListener('click', () => {
         const chosen = el.dataset.l;
@@ -1357,16 +1350,6 @@
   function renderBoard() {
     boardEl.innerHTML = '';
 
-    // Anteprima live della parola in formazione: celle coinvolte + validità
-    let previewInfo = null;
-    if (pendingTiles.length > 0 && turn === 'player' && !swapMode) {
-      const { cells, anchor } = computePreviewCells(pendingTiles);
-      if (cells.size > 0) {
-        const result = validateAndScoreMove(pendingTiles);
-        previewInfo = { cells, anchor, valid: result.valid, score: result.score };
-      }
-    }
-
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const cell = document.createElement('div');
@@ -1380,10 +1363,6 @@
         else if (premium === 3) cell.classList.add('dw');
         else if (premium === 4) cell.classList.add('tw');
         else if (premium === 5) cell.classList.add('star');
-
-        if (previewInfo && previewInfo.cells.has(r + ',' + c)) {
-          cell.classList.add(previewInfo.valid ? 'word-frame-valid' : 'word-frame-invalid');
-        }
 
         const pending = pendingTiles.find(t => t.row === r && t.col === c);
 
@@ -1406,16 +1385,6 @@
           ptsSpan.textContent = pts;
           cell.appendChild(ptsSpan);
 
-          // Sull'ultima tessera piazzata mostriamo il badge col punteggio live (solo se valida)
-          if (previewInfo && previewInfo.valid && previewInfo.anchor &&
-              previewInfo.anchor[0] === r && previewInfo.anchor[1] === c) {
-            cell.classList.add('preview-end');
-            const bubble = document.createElement('span');
-            bubble.className = 'score-bubble';
-            bubble.textContent = previewInfo.score;
-            cell.appendChild(bubble);
-          }
-
           attachBoardTileDrag(cell, r, c);
         } else {
           // Altrimenti mostra l'etichetta premium
@@ -1431,6 +1400,7 @@
         boardEl.appendChild(cell);
       }
     }
+    drawOverlays();
   }
 
   function renderRack() {
@@ -1459,14 +1429,6 @@
       }
       
       rackSlotsEl.appendChild(slot);
-    }
-
-    cpuRackPreviewEl.innerHTML = '';
-    for (let i = 0; i < cpuRack.length; i++) {
-      const mini = document.createElement('div');
-      mini.className = 'cpu-tile-mini';
-      mini.textContent = '?';
-      cpuRackPreviewEl.appendChild(mini);
     }
   }
 
@@ -1537,22 +1499,30 @@
     // ritirarla in mano.
     if (tile.isBlank) {
       openBlankLetterPicker((chosen) => {
+        if (chosen === 'RECALL') { returnPendingToRack(row, col); return; }
         if (!chosen) return;
         const stillIdx = pendingTiles.findIndex(t => t.row === row && t.col === col);
         if (stillIdx === -1) return;
         pendingTiles[stillIdx].letter = chosen.toLowerCase();
         renderBoard();
         syncUI();
-      });
+      }, true);
       return true;
     }
 
-    pendingTiles.splice(pendIdx, 1);
-    playerRack.push(tile.letter);
+    returnPendingToRack(row, col);
+    return true;
+  }
+
+  // Rimette in mano una tessera piazzata (il jolly torna ★, libero di cambiare lettera).
+  function returnPendingToRack(row, col) {
+    const idx = pendingTiles.findIndex(t => t.row === row && t.col === col);
+    if (idx === -1) return;
+    const [tile] = pendingTiles.splice(idx, 1);
+    playerRack.push(tile.isBlank ? '★' : tile.letter);
     renderRack();
     renderBoard();
     syncUI();
-    return true;
   }
 
   function handleCellClick(row, col) {
@@ -1805,7 +1775,7 @@
     if (!boardDragState) return;
     const dx = e.clientX - boardDragState.startX;
     const dy = e.clientY - boardDragState.startY;
-    if (!boardDragState.moved && Math.hypot(dx, dy) > 8) {
+    if (!boardDragState.moved && Math.hypot(dx, dy) > 5) {
       boardDragState.moved = true;
       createGhost(boardDragState.letter);
       boardDragState.cellEl.classList.add('dragging-source');
@@ -1839,6 +1809,12 @@
         }
         // Se la casella target non è valida (occupata o è la stessa), la tessera
         // resta semplicemente dov'era: nessuna modifica da fare.
+      } else {
+        // Rilasciata fuori dalla board (es. sul rack): torna in mano.
+        returnPendingToRack(fromRow, fromCol);
+        lastBoardDragEndAt = Date.now();
+        boardDragState = null;
+        return;
       }
       renderBoard();
       syncUI();
@@ -1899,39 +1875,98 @@
     return cells.length > 1 ? cells : [];
   }
 
-  // Calcola l'insieme di celle coinvolte nella/e parola/e che si sta formando con le tessere
-  // pendenti, così da poter evidenziare tutta la parola (anche le lettere già sulla board),
-  // non solo le tessere appena piazzate. Restituisce anche la cella "finale" su cui mettere
-  // il badge col punteggio (l'ultima tessera pendente in ordine di piazzamento).
-  function computePreviewCells(moveTiles) {
-    const cells = new Set();
-    if (moveTiles.length === 0) return { cells, anchor: null };
-
+  // Restituisce le parole (liste di celle [r,c]) formate dalle tessere pendenti:
+  // prima la parola principale, poi le eventuali parole incrociate.
+  function computePreviewWords(moveTiles) {
+    const words = [];
+    if (moveTiles.length === 0) return words;
     const simBoard = board.map(row => [...row]);
     for (const t of moveTiles) {
       if (simBoard[t.row][t.col] === null) simBoard[t.row][t.col] = t.letter;
     }
-
     const rows = moveTiles.map(t => t.row);
     const cols = moveTiles.map(t => t.col);
     const sameRow = rows.every(r => r === rows[0]);
     const sameCol = cols.every(c => c === cols[0]);
+    if (!(sameRow || sameCol)) return words;
+    let horizontal = sameRow;
+    let main = getWordCellsFromMove(moveTiles[0].row, moveTiles[0].col, horizontal, simBoard);
+    if (main.length === 0 && moveTiles.length === 1) {
+      horizontal = !horizontal;
+      main = getWordCellsFromMove(moveTiles[0].row, moveTiles[0].col, horizontal, simBoard);
+    }
+    if (main.length) words.push(main);
+    const seen = new Set();
+    for (const t of moveTiles) {
+      const cross = getWordCellsFromMove(t.row, t.col, !horizontal, simBoard);
+      if (!cross.length) continue;
+      const key = cross[0][0] + ',' + cross[0][1];
+      if (seen.has(key)) continue;
+      seen.add(key);
+      words.push(cross);
+    }
+    return words;
+  }
 
-    if (sameRow || sameCol) {
-      const horizontal = sameRow;
-      const mainCells = getWordCellsFromMove(moveTiles[0].row, moveTiles[0].col, horizontal, simBoard);
-      mainCells.forEach(([r, c]) => cells.add(r + ',' + c));
+  // Disegna sopra il tabellone: cornici delle parole in formazione (verde/rossa),
+  // badge col punteggio fuori dalla cornice e badge blu con i punti dell'ultima
+  // parola giocata dalla CPU.
+  function drawOverlays() {
+    const wrapper = document.querySelector('.board-wrapper');
+    if (!wrapper) return;
+    let overlay = wrapper.querySelector('.board-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'board-overlay';
+      wrapper.appendChild(overlay);
+    }
+    overlay.innerHTML = '';
+    const wr = wrapper.getBoundingClientRect();
+    const cellEl = (r, c) => boardEl.children[r * BOARD_SIZE + c];
 
-      for (const t of moveTiles) {
-        const perpCells = getWordCellsFromMove(t.row, t.col, !horizontal, simBoard);
-        perpCells.forEach(([r, c]) => cells.add(r + ',' + c));
+    if (pendingTiles.length > 0 && turn === 'player' && !swapMode) {
+      const words = computePreviewWords(pendingTiles);
+      if (words.length) {
+        const result = validateAndScoreMove(pendingTiles);
+        let mainRect = null;
+        words.forEach((cells, i) => {
+          const first = cellEl(cells[0][0], cells[0][1]).getBoundingClientRect();
+          const last = cellEl(cells[cells.length - 1][0], cells[cells.length - 1][1]).getBoundingClientRect();
+          const left = Math.min(first.left, last.left) - wr.left - 2;
+          const top = Math.min(first.top, last.top) - wr.top - 2;
+          const right = Math.max(first.right, last.right) - wr.left + 2;
+          const bottom = Math.max(first.bottom, last.bottom) - wr.top + 2;
+          const f = document.createElement('div');
+          f.className = 'word-frame' + (result.valid ? '' : ' invalid');
+          f.style.left = left + 'px';
+          f.style.top = top + 'px';
+          f.style.width = (right - left) + 'px';
+          f.style.height = (bottom - top) + 'px';
+          overlay.appendChild(f);
+          if (i === 0) mainRect = { right, bottom };
+        });
+        if (result.valid && mainRect) {
+          const b = document.createElement('div');
+          b.className = 'score-badge';
+          b.style.left = (mainRect.right - 2) + 'px';
+          b.style.top = (mainRect.bottom - 2) + 'px';
+          b.innerHTML = '<span>' + result.score + '</span>';
+          overlay.appendChild(b);
+        }
       }
     }
 
-    const last = moveTiles[moveTiles.length - 1];
-    const anchor = cells.size > 0 ? [last.row, last.col] : null;
-    return { cells, anchor };
+    if (lastMove && board[lastMove.row][lastMove.col]) {
+      const rc = cellEl(lastMove.row, lastMove.col).getBoundingClientRect();
+      const b = document.createElement('div');
+      b.className = 'last-move-badge';
+      b.style.left = (rc.left - wr.left + 3) + 'px';
+      b.style.top = (rc.top - wr.top + 3) + 'px';
+      b.textContent = lastMove.score;
+      overlay.appendChild(b);
+    }
   }
+  window.addEventListener('resize', () => setTimeout(drawOverlays, 50));
 
   function validateAndScoreMove(moveTiles) {
     if (moveTiles.length === 0) return { valid: false, score: 0, words: [], error: 'Nessuna tessera posizionata' };
@@ -2069,6 +2104,7 @@
     }
 
     commitMove(pendingTiles);
+    lastMove = null;
     playerScore += result.score;
     gems += Math.floor(result.score / 3);
     const wordsPlayed = result.words.join(', ');
@@ -2129,6 +2165,8 @@
     const move = findCpuMove();
     if (move) {
       commitMove(move.tiles);
+      const lastTile = move.tiles[move.tiles.length - 1];
+      lastMove = { row: lastTile.row, col: lastTile.col, score: move.score };
       cpuScore += move.score;
       for (let t of move.tiles) {
         const idx = cpuRack.indexOf(t.letter);
@@ -2350,7 +2388,7 @@
         v: 1,
         board, playerRack, cpuRack, bag,
         playerScore, cpuScore, turn, gameOver,
-        firstMoveDone, gems, pendingTiles
+        firstMoveDone, gems, pendingTiles, lastMove
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(state));
     } catch (err) {
@@ -2383,6 +2421,7 @@
       gems = typeof state.gems === 'number' ? state.gems : 123;
       pendingTiles = Array.isArray(state.pendingTiles) ? state.pendingTiles : [];
       swapMode = false;
+      lastMove = state.lastMove || null;
       swapSelection = [];
       clearSelection();
 
@@ -2414,6 +2453,7 @@
   }
 
   function newGame() {
+    lastMove = null;
     board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(null));
     bag = createBag();
     playerRack = [];
