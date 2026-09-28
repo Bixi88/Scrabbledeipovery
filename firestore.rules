@@ -5,10 +5,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Profilo: ognuno legge/scrive solo il proprio (per ora c'è solo il nickname;
-    // in futuro qui potrà stare il token per le notifiche push).
+    // Profilo: ognuno legge/scrive solo il proprio (per ora c'è solo il nickname).
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Sottoscrizione alle notifiche push: ognuno scrive/cancella solo la propria.
+    // Un documento si può leggere conoscendo l'uid (niente elenco): serve al Worker,
+    // che lo legge con il token di chi ha appena mosso. Da sola non permette di
+    // inviare nulla: per mandare notifiche serve la chiave privata VAPID del Worker.
+    match /pushSubs/{uid} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.endpoint is string
+        && request.resource.data.endpoint.matches('https://.*')
+        && request.resource.data.p256dh is string
+        && request.resource.data.auth is string;
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
     // Inviti: si legge un invito solo conoscendo il codice (niente elenco),

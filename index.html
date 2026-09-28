@@ -2620,6 +2620,12 @@
   const MP_JOIN_KEY = 'scrabbleMpPendingJoin';
   const MP_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
+  // Notifiche push (vedi push-worker/LEGGIMI.md). Finché uno dei due resta vuoto le notifiche
+  // sono spente e l'app si comporta come prima.
+  const PUSH_WORKER_URL = 'https://scrabble-push.bix20252025.workers.dev';          // es. 'https://scrabble-push.tuonome.workers.dev'
+  const PUSH_VAPID_PUBLIC_KEY = 'BBUhlOxlZzjw0hrnbALWD2wPYQHHldLjkJqmbHaHMFXbbCQ3gjd73s1MWE_5nFtmV77BJa4-XTwS9jR99sWqbdM';    // chiave pubblica generata con push-worker/vapid-keygen.html
+  const PUSH_ENABLED = !!PUSH_WORKER_URL && !!PUSH_VAPID_PUBLIC_KEY;
+
   const mp = {
     FB: null, app: null, auth: null, db: null,
     uid: null, nick: '',
@@ -2627,7 +2633,8 @@
     unsubList: null, unsubGame: null,
     gameId: null, game: null, slot: 0, oppName: 'Avversario',
     appliedVersion: -1, rematchPrompted: false,
-    screen: null, inviteId: null, busy: false, offline: false
+    screen: null, inviteId: null, busy: false, offline: false,
+    pushOn: false, pendingOpen: null
   };
 
   // ---------- utilità ----------
@@ -2731,6 +2738,102 @@
     return '';
   }
 
+  // ---------- notifiche push ----------
+  function pushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  }
+  // Su iPhone/iPad le notifiche web esistono solo per l'app aggiunta alla schermata Home.
+  function pushIosNeedsInstall() {
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    return ios && !standalone;
+  }
+  function pushKeyBytes() {
+    const s = PUSH_VAPID_PUBLIC_KEY.replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(s + '='.repeat((4 - s.length % 4) % 4));
+    return Uint8Array.from(bin, c => c.charCodeAt(0));
+  }
+  async function pushSaveSub(sub) {
+    const j = sub.toJSON();
+    await mp.FB.setDoc(mp.FB.doc(mp.db, 'pushSubs', mp.uid), {
+      endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, updatedMs: Date.now()
+    });
+  }
+  // All'avvio: se il permesso c'è già, rinnova/ricontrolla la sottoscrizione (può cambiare da sola).
+  async function pushRefresh() {
+    if (!PUSH_ENABLED || !pushSupported() || Notification.permission !== 'granted') { mp.pushOn = false; return; }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes() });
+      await pushSaveSub(sub);
+      mp.pushOn = true;
+    } catch (err) {
+      console.warn('Notifiche: aggiornamento non riuscito', err);
+      mp.pushOn = false;
+    }
+    if (mp.screen === 'home') mpRenderHome();
+  }
+  // Va chiamata direttamente da un tocco dell'utente (il browser lo pretende per chiedere il permesso).
+  async function pushEnable() {
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        showNotification(perm === 'denied' ? 'Notifiche bloccate: riattivale dalle impostazioni del browser.' : 'Permesso non concesso.', 3500);
+        mpRenderHome();
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKeyBytes() });
+      await pushSaveSub(sub);
+      mp.pushOn = true;
+      showNotification('Notifiche attivate!', 2500);
+    } catch (err) {
+      console.warn('Notifiche: attivazione fallita', err);
+      showNotification('Non sono riuscito ad attivare le notifiche: ' + ((err && err.message) || 'errore'), 4000);
+    }
+    mpRenderHome();
+  }
+  async function pushDisable() {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+      await mp.FB.deleteDoc(mp.FB.doc(mp.db, 'pushSubs', mp.uid));
+    } catch (err) { console.warn('Notifiche: disattivazione', err); }
+    mp.pushOn = false;
+    showNotification('Notifiche disattivate.', 2000);
+    mpRenderHome();
+  }
+  function pushHomeHtml() {
+    if (!PUSH_ENABLED) return '';
+    if (pushIosNeedsInstall()) {
+      return '<div class="mp-note" style="margin-top:6px;">🔔 Per le notifiche su iPhone: tocca <b>Condividi</b> → <b>Aggiungi alla schermata Home</b>, poi apri il gioco da lì.</div>';
+    }
+    if (!pushSupported()) return '';
+    if (Notification.permission === 'denied') {
+      return '<div class="mp-note" style="margin-top:6px;">🔕 Notifiche bloccate: riattivale dalle impostazioni del browser per questo sito.</div>';
+    }
+    if (mp.pushOn) {
+      return '<button class="mp-btn ghost" data-act="pushOff">🔔 Notifiche attive · tocca per disattivare</button>';
+    }
+    return '<button class="mp-btn ghost" data-act="pushOn">🔔 Attiva le notifiche</button>';
+  }
+  // Dopo una mossa: chiede al Worker di avvisare l'altro giocatore (senza aspettare la risposta).
+  async function mpNotifyOpponent(gameId, kind) {
+    if (!PUSH_ENABLED || !mp.auth || !mp.auth.currentUser) return;
+    try {
+      const token = await mp.auth.currentUser.getIdToken();
+      await fetch(PUSH_WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ gameId, kind }),
+        keepalive: true
+      });
+    } catch (err) { console.warn('Notifica non inviata:', err); }
+  }
+
   // ---------- avvio ----------
   function mpBoot() {
     // Chiede al browser di non svuotare lo storage (identità anonima + partita CPU).
@@ -2744,6 +2847,11 @@
       const code = new URLSearchParams(location.search).get('join');
       if (code) {
         localStorage.setItem(MP_JOIN_KEY, code.trim().toUpperCase());
+        history.replaceState(null, '', location.pathname);
+      }
+      const gid = new URLSearchParams(location.search).get('game');
+      if (gid && /^[A-Za-z0-9]{10,40}$/.test(gid)) {
+        mp.pendingOpen = gid;
         history.replaceState(null, '', location.pathname);
       }
     } catch (e) { /* ignora */ }
@@ -2779,6 +2887,8 @@
     let code = null;
     try { code = localStorage.getItem(MP_JOIN_KEY); localStorage.removeItem(MP_JOIN_KEY); } catch (e) { /* ignora */ }
     if (code) await mpRun(() => mpJoinByCode(code));
+    else if (mp.pendingOpen) { const id = mp.pendingOpen; mp.pendingOpen = null; mpOpenGame(id); }
+    pushRefresh();
   }
 
   async function mpSubmitNick(raw) {
@@ -2944,7 +3054,7 @@
     } else {
       if (mp.listError) body += '<div class="mp-error">' + esc(mp.listError) + '</div>';
       body += '<button class="mp-btn" data-act="new">➕ Nuova partita online</button>' +
-              '<button class="mp-btn ghost" data-act="join">🔗 Ho un codice invito</button>';
+              '<button class="mp-btn ghost" data-act="join">🔗 Ho un codice invito</button>' + pushHomeHtml();
       const any = mine.length + theirs.length + waiting.length + done.length;
       if (!any && !mp.listError) body += '<div class="mp-note">Nessuna partita online per ora. Creane una e manda il link su WhatsApp!</div>';
       body += section('Tocca a te', mine) + section('Tocca a loro', theirs) + section('In attesa di uno sfidante', waiting) +
@@ -2970,6 +3080,8 @@
     else if (act === 'home') mpShowHome();
     else if (act === 'nick') { const v = document.getElementById('mpNickInput').value; mpRun(() => mpSubmitNick(v)); }
     else if (act === 'retry') mpStart();
+    else if (act === 'pushOn') mpRun(pushEnable);
+    else if (act === 'pushOff') mpRun(pushDisable);
     else if (act === 'wa') {
       const text = 'Ti sfido a Scrabble! Apri il link per giocare: ' + el.dataset.link;
       window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
@@ -3059,7 +3171,7 @@
         const s = await tx.get(ref);
         if (!s.exists()) return { error: 'Partita non trovata.' };
         const d = s.data();
-        if (d.players.includes(mp.uid)) return { id: gameId };          // già dentro (es. il link è il tuo)
+        if (d.players.includes(mp.uid)) return { id: gameId, joined: false };   // già dentro (es. il link è il tuo)
         if (d.status !== 'waiting' || d.players.length >= 2) return { error: 'Questa partita ha già due giocatori.' };
         tx.update(ref, {
           players: [d.players[0], mp.uid],
@@ -3068,9 +3180,10 @@
           version: d.version + 1,
           updatedMs: Date.now()
         });
-        return { id: gameId };
+        return { id: gameId, joined: true };
       });
       if (res.error) { showNotification(res.error, 3500); return; }
+      if (res.joined) mpNotifyOpponent(res.id, 'join');
       mpOpenGame(res.id);
     } catch (err) {
       showNotification(mpErrText(err), 3500);
@@ -3365,6 +3478,7 @@
       // Il listener può aver già applicato questa versione prima che la transazione risponda: non applicarla due volte.
       if (nd.version > mp.appliedVersion) mpApplyState(nd);
       isCpuThinking = false;
+      mpNotifyOpponent(mp.gameId, 'move');
       if (okMessage) showNotification(okMessage, 2500);
       return true;
     } catch (err) {
@@ -3410,7 +3524,9 @@
     const oldRef = FB.doc(mp.db, 'games', mp.gameId);
     const newRef = FB.doc(FB.collection(mp.db, 'games'));
     try {
+      let created = false;
       const newId = await FB.runTransaction(mp.db, async (tx) => {
+        created = false;
         const s = await tx.get(oldRef);
         if (!s.exists()) throw mpErr('gone');
         const d = s.data();
@@ -3420,8 +3536,10 @@
         const data = mpNewGameData([mp.uid, d.players[1 - slot]], [d.names[slot], d.names[1 - slot]], 'active', mpRematchStarter(d), null);
         tx.set(newRef, data);
         tx.update(oldRef, { rematchGameId: newRef.id });
+        created = true;
         return newRef.id;
       });
+      if (created) mpNotifyOpponent(newId, 'rematch');
       mpOpenGame(newId);
     } catch (err) {
       showNotification(mpErrText(err), 3500);
@@ -3471,6 +3589,12 @@
   mpBoot();   // senza configurazione Firebase parte direttamente la partita CPU, come prima
 
   if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      const m = e.data;
+      if (!m || m.type !== 'openGame' || !/^[A-Za-z0-9]{10,40}$/.test(m.gameId || '')) return;
+      if (mp.uid && mp.FB && mp.db) mpOpenGame(m.gameId);
+      else mp.pendingOpen = m.gameId;
+    });
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').then((registration) => {
         // Appena c'è un nuovo service worker installato e pronto, digli di

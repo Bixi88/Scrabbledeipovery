@@ -3,7 +3,7 @@
 // ma dà sempre priorità alla rete: appena pubblichi un commit su GitHub, il primo
 // dispositivo online lo scarica subito (niente più bisogno di alzare a mano un
 // numero di versione o svuotare la cache).
-const CACHE_NAME = 'scrabbledeipovery-v3-network-first';
+const CACHE_NAME = 'scrabbledeipovery-v4-network-first';
 
 // File da salvare subito all'installazione. dizionario.txt/dizionario2.txt sono
 // opzionali: se non esistono ancora nel repo, il precache degli altri file riesce
@@ -77,4 +77,48 @@ self.addEventListener('fetch', (event) => {
 // index.html): senza aspettare che tutte le schede vengano chiuse.
 self.addEventListener('message', (event) => {
   if (event.data === 'skipWaiting') self.skipWaiting();
+});
+
+// ---------- Notifiche push ----------
+// Il Worker Cloudflare manda un messaggio cifrato {title, body, gameId, tag}: qui lo
+// trasformiamo in notifica. Se l'app è aperta e in primo piano non serve disturbare
+// (tranne su iPhone/iPad, dove Apple pretende una notifica per ogni push ricevuto).
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
+  const title = data.title || 'SCRABBLEdeipovery';
+  const options = {
+    body: data.body || 'Tocca a te!',
+    icon: './icon-192.png',
+    tag: data.tag || 'scrabble',
+    renotify: true,
+    data: { gameId: data.gameId || null }
+  };
+  event.waitUntil((async () => {
+    const isApple = /iPhone|iPad|iPod/.test(self.navigator.userAgent || '');
+    if (!isApple) {
+      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      if (wins.some((c) => c.visibilityState === 'visible' && c.focused)) return;
+    }
+    await self.registration.showNotification(title, options);
+  })());
+});
+
+// Tocco sulla notifica: porta in primo piano l'app e apre la partita giusta.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const gameId = event.notification.data && event.notification.data.gameId;
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of wins) {
+      if ('focus' in c) {
+        await c.focus();
+        if (gameId) c.postMessage({ type: 'openGame', gameId });
+        return;
+      }
+    }
+    const url = new URL('./index.html', self.registration.scope);
+    if (gameId) url.searchParams.set('game', gameId);
+    await self.clients.openWindow(url.href);
+  })());
 });
