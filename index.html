@@ -392,6 +392,67 @@
       font-weight: 500;
       letter-spacing: -0.02em;
     }
+    /* Popup del rombo/pallino punteggio: appare con un piccolo rimbalzo invece che di scatto */
+    @keyframes badgePop {
+      0%   { transform: translate(-50%, -50%) rotate(45deg) scale(0.3); opacity: 0; }
+      55%  { transform: translate(-50%, -50%) rotate(45deg) scale(1.22); opacity: 1; }
+      100% { transform: translate(-50%, -50%) rotate(45deg) scale(1); opacity: 1; }
+    }
+    @keyframes badgePopRound {
+      0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+      55%  { transform: translate(-50%, -50%) scale(1.28); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+    .score-badge.pop { animation: badgePop 0.34s cubic-bezier(.34,1.56,.64,1) both; }
+    .last-move-badge.pop { animation: badgePopRound 0.34s cubic-bezier(.34,1.56,.64,1) both; }
+
+    /* Lettera che "salta" al momento dell'invio, prima di volare verso il punteggio */
+    @keyframes tilePop {
+      0%   { transform: scale(1); box-shadow: none; }
+      45%  { transform: scale(1.3); box-shadow: 0 0 0 5px rgba(255,235,59,0.55), 0 6px 10px rgba(0,0,0,0.3); }
+      100% { transform: scale(1); box-shadow: none; }
+    }
+    .cell.pop-cell { animation: tilePop 0.4s cubic-bezier(.34,1.56,.64,1) both; z-index: 15; }
+
+    /* Il resto del tabellone si affievolisce mentre la parola appena giocata risalta */
+    .cell.dim-cell { filter: brightness(0.5) saturate(0.6); transition: filter 0.35s ease; }
+
+    /* Tessera "volante" che porta i punti verso il totale in alto */
+    .fly-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 600;
+      overflow: visible;
+    }
+    .fly-tile {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 30px;
+      height: 30px;
+      margin: -15px 0 0 -15px;
+      background: linear-gradient(160deg, #fdf6d8, #f5e6b8);
+      border: 1px solid #d4c090;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: #1a1a1a;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+      will-change: transform, opacity;
+    }
+
+    /* Il riquadro del punteggio "batte" quando arrivano i punti */
+    @keyframes scoreLand {
+      0%   { transform: scale(1); }
+      45%  { transform: scale(1.24); }
+      100% { transform: scale(1); }
+    }
+    .player-score.score-pulse { animation: scoreLand 0.32s cubic-bezier(.34,1.56,.64,1); display: inline-block; }
+
     .last-move-badge {
       position: absolute;
       width: calc(var(--cell, 24px) * 0.65);
@@ -1166,6 +1227,9 @@
   let gems = 123;
   let isCpuThinking = false;
   let lastMove = null;          // ultima parola della CPU (per il badge blu)
+  let lastPreviewBadgeKey = null; // per far "poppare" il rombo solo quando cambia davvero
+  let lastMoveBadgeKey = null;    // idem per il pallino dell'ultima mossa
+  let flyLayerEl = null;          // livello sopra il tabellone per l'animazione dei punti
   let dragState = null;         // stato del trascinamento in corso (dal rack)
   let boardDragState = null;    // stato del trascinamento di una tessera già piazzata (pending) sulla board
   let lastBoardDragEndAt = 0;   // timestamp per ignorare il "click" fantasma dopo un drag sulla board
@@ -2058,6 +2122,7 @@
     const wr = wrapper.getBoundingClientRect();
     const cellEl = (r, c) => boardEl.children[r * BOARD_SIZE + c];
 
+    if (pendingTiles.length === 0) lastPreviewBadgeKey = null;
     if (pendingTiles.length > 0 && !gameOver && !swapMode) {
       const words = computePreviewWords(pendingTiles);
       if (words.length) {
@@ -2083,7 +2148,9 @@
           // Rombo verde appoggiato all'angolo della cornice, tutto fuori dalle lettere
           const pos = badgeOutsideCorner(mainRect.cells, wr, 1.5);
           const b = document.createElement('div');
-          b.className = 'score-badge';
+          const badgeKey = result.score + '@' + mainRect.cells[0][0] + '_' + mainRect.cells[0][1];
+          b.className = 'score-badge' + (badgeKey !== lastPreviewBadgeKey ? ' pop' : '');
+          lastPreviewBadgeKey = badgeKey;
           b.style.left = pos.x + 'px';
           b.style.top = pos.y + 'px';
           b.innerHTML = '<span>' + result.score + '</span>';
@@ -2097,11 +2164,15 @@
       const cells = (lastMove.cells && lastMove.cells.length) ? lastMove.cells : [[lastMove.row, lastMove.col]];
       const pos = badgeOutsideCorner(cells, wr, 0.07 * cellEl(lastMove.row, lastMove.col).getBoundingClientRect().width);
       const b = document.createElement('div');
-      b.className = 'last-move-badge' + (lastMove.mine ? ' mine' : '');
+      const mvKey = lastMove.row + '_' + lastMove.col + '@' + lastMove.score;
+      b.className = 'last-move-badge' + (lastMove.mine ? ' mine' : '') + (mvKey !== lastMoveBadgeKey ? ' pop' : '');
+      lastMoveBadgeKey = mvKey;
       b.style.left = pos.x + 'px';
       b.style.top = pos.y + 'px';
       b.textContent = lastMove.score;
       overlay.appendChild(b);
+    } else {
+      lastMoveBadgeKey = null;
     }
   }
 
@@ -2248,6 +2319,108 @@
     return { valid: true, score: total, words: words, error: '' };
   }
 
+  function getFlyLayer() {
+    if (!flyLayerEl || !flyLayerEl.isConnected) {
+      const container = document.querySelector('.app-container');
+      flyLayerEl = document.createElement('div');
+      flyLayerEl.className = 'fly-layer';
+      container.appendChild(flyLayerEl);
+    }
+    return flyLayerEl;
+  }
+
+  // Anima l'invio di una parola: le lettere "saltano" una dopo l'altra, il resto del
+  // tabellone si affievolisce, poi da ogni lettera parte un punto che vola con una
+  // traiettoria ad arco verso il riquadro del punteggio, che nel frattempo conta verso
+  // l'alto e "batte" a ogni arrivo. cellsWithLetters: [{row, col, letter}]. Richiama
+  // onDone a fine animazione (sempre, anche se non ci sono celle da animare).
+  function animateWordSubmit(cellsWithLetters, score, scoreEl, startScore, onDone) {
+    const wrapper = document.querySelector('.board-wrapper');
+    if (!cellsWithLetters.length || !wrapper || score <= 0) { onDone(); return; }
+
+    const cellEl = (r, c) => boardEl.children[r * BOARD_SIZE + c];
+    const playedSet = new Set(cellsWithLetters.map(t => t.row + '_' + t.col));
+    boardEl.querySelectorAll('.cell.occupied, .cell.pending').forEach(el => {
+      if (!playedSet.has(el.dataset.row + '_' + el.dataset.col)) el.classList.add('dim-cell');
+    });
+    cellsWithLetters.forEach((t, i) => {
+      const el = cellEl(t.row, t.col);
+      if (!el) return;
+      el.style.animationDelay = (i * 55) + 'ms';
+      el.classList.add('pop-cell');
+    });
+
+    const popPhase = (cellsWithLetters.length - 1) * 55 + 420;
+
+    setTimeout(() => {
+      const layer = getFlyLayer();
+      const appRect = document.querySelector('.app-container').getBoundingClientRect();
+      const targetRect = scoreEl.getBoundingClientRect();
+      const tx = targetRect.left + targetRect.width / 2 - appRect.left;
+      const ty = targetRect.top + targetRect.height / 2 - appRect.top;
+
+      const n = cellsWithLetters.length;
+      const per = Math.floor(score / n);
+      const shares = new Array(n).fill(per);
+      let rest = score - per * n;
+      for (let i = n - 1; rest > 0; i--, rest--) shares[i] += 1;
+
+      let shown = startScore;
+      let arrivedCount = 0;
+
+      cellsWithLetters.forEach((t, i) => {
+        const el = cellEl(t.row, t.col);
+        const rect = el ? el.getBoundingClientRect() : targetRect;
+        const sx = rect.left + rect.width / 2 - appRect.left;
+        const sy = rect.top + rect.height / 2 - appRect.top;
+
+        const ghost = document.createElement('div');
+        ghost.className = 'fly-tile';
+        ghost.textContent = t.letter;
+        layer.appendChild(ghost);
+
+        const dx = tx - sx, dy = ty - sy;
+        const cx = sx + dx * 0.5;
+        const cy = Math.min(sy, ty) - Math.max(70, Math.abs(dx) * 0.3) - i * 8;
+
+        const duration = 460 + i * 30;
+        const delay = i * 50;
+        const startAt = performance.now() + delay;
+
+        function step(now) {
+          let t2 = (now - startAt) / duration;
+          if (t2 < 0) { requestAnimationFrame(step); return; }
+          if (t2 > 1) t2 = 1;
+          const e = t2 < 0.5 ? 2 * t2 * t2 : 1 - Math.pow(-2 * t2 + 2, 2) / 2;
+          const x = (1 - e) * (1 - e) * sx + 2 * (1 - e) * e * cx + e * e * tx;
+          const y = (1 - e) * (1 - e) * sy + 2 * (1 - e) * e * cy + e * e * ty;
+          const scale = 1 - 0.5 * e;
+          const opacity = t2 < 0.7 ? 1 : 1 - (t2 - 0.7) / 0.3;
+          ghost.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+          ghost.style.opacity = opacity;
+          if (t2 < 1) {
+            requestAnimationFrame(step);
+          } else {
+            ghost.remove();
+            arrivedCount++;
+            shown += shares[i];
+            scoreEl.textContent = shown;
+            scoreEl.classList.remove('score-pulse');
+            void scoreEl.offsetWidth;
+            scoreEl.classList.add('score-pulse');
+            if (arrivedCount === n) {
+              scoreEl.textContent = startScore + score;
+              boardEl.querySelectorAll('.dim-cell').forEach(el2 => el2.classList.remove('dim-cell'));
+              boardEl.querySelectorAll('.pop-cell').forEach(el2 => { el2.classList.remove('pop-cell'); el2.style.animationDelay = ''; });
+              onDone();
+            }
+          }
+        }
+        requestAnimationFrame(step);
+      });
+    }, popPhase);
+  }
+
   function commitMove(moveTiles) {
     for (let { row, col, letter } of moveTiles) {
       board[row][col] = letter;
@@ -2271,33 +2444,42 @@
 
     if (gameMode === 'mp') { mpSubmitWord(result); return; }
 
-    commitMove(pendingTiles);
-    lastMove = null;
-    playerScore += result.score;
-    gems += Math.floor(result.score / 3);
     const wordsPlayed = result.words.join(', ');
     const scorePlayed = result.score;
-    pendingTiles = [];
-    drawTiles(playerRack, 1);
-
-    clearSelection();
-    updateScores();
-    renderBoard();
-    renderRack();
+    const startScore = playerScore;
+    const movedTiles = pendingTiles.slice();
 
     headerMessageEl.textContent = `Hai giocato ${wordsPlayed} per ${scorePlayed} punti`;
     showNotification(`+${scorePlayed} punti! ${wordsPlayed}`, 2500);
+    isCpuThinking = true;   // riusato come "occupato": blocca tocchi/drag durante l'animazione
+    playBtn.disabled = true;
+    skipBtn.disabled = true;
 
-    if (playerRack.length === 0 && bag.length === 0) {
-      endGame();
-      return;
-    }
+    animateWordSubmit(movedTiles, scorePlayed, playerScoreEl, startScore, () => {
+      commitMove(movedTiles);
+      lastMove = null;
+      playerScore = startScore + scorePlayed;
+      gems += Math.floor(scorePlayed / 3);
+      pendingTiles = [];
+      drawTiles(playerRack, 1);
 
-    turn = 'cpu';
-    syncUI();
-    updateTurnIndicator();
-    isCpuThinking = true;
-    setTimeout(cpuMove, 1000);
+      clearSelection();
+      updateScores();
+      renderBoard();
+      renderRack();
+      isCpuThinking = false;
+
+      if (playerRack.length === 0 && bag.length === 0) {
+        endGame();
+        return;
+      }
+
+      turn = 'cpu';
+      syncUI();
+      updateTurnIndicator();
+      isCpuThinking = true;
+      setTimeout(cpuMove, 1000);
+    });
   }
 
   function skipTurn() {
@@ -2337,18 +2519,25 @@
     if (move) {
       commitMove(move.tiles);
       const draftDropped = recallDraftAfterOpponentWord();
-      const lastTile = move.tiles[move.tiles.length - 1];
-      lastMove = { row: lastTile.row, col: lastTile.col, score: move.score, cells: move.tiles.map(t => [t.row, t.col]) };
-      cpuScore += move.score;
       for (let t of move.tiles) {
         const idx = cpuRack.indexOf(t.letter);
         if (idx !== -1) cpuRack.splice(idx, 1);
       }
       drawTiles(cpuRack);
-      updateScores();
-      renderBoard();
+      renderBoard();   // mostra subito le lettere appena giocate (già "occupied")
+      renderRack();    // mostra subito eventuali tessere tue tornate in mano
+
+      const startScore = cpuScore;
       const wordsLabel = (move.words && move.words.length) ? move.words.join(', ') : '';
-      showNotification(`CPU ha giocato ${wordsLabel} per ${move.score} punti!` + (draftDropped ? ' · le tue tessere sono tornate in mano' : ''), 2500);
+      animateWordSubmit(move.tiles, move.score, cpuScoreEl, startScore, () => {
+        cpuScore = startScore + move.score;
+        const lastTile = move.tiles[move.tiles.length - 1];
+        lastMove = { row: lastTile.row, col: lastTile.col, score: move.score, cells: move.tiles.map(t => [t.row, t.col]) };
+        updateScores();
+        renderBoard();
+        showNotification(`CPU ha giocato ${wordsLabel} per ${move.score} punti!` + (draftDropped ? ' · le tue tessere sono tornate in mano' : ''), 2500);
+        finishCpuTurn();
+      });
     } else {
       recallDraftAfterOpponentWord();
       const swapped = cpuTrySwap();
@@ -2357,8 +2546,11 @@
       } else {
         showNotification('CPU passa il turno.', 1500);
       }
+      finishCpuTurn();
     }
+  }
 
+  function finishCpuTurn() {
     if (cpuRack.length === 0 && bag.length === 0) {
       endGame();
       isCpuThinking = false;
