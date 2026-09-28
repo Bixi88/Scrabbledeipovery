@@ -55,8 +55,9 @@
     .header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 4px 12px;
+      justify-content: center;
+      padding: 2px 10px;
+      min-height: 26px;
       background: linear-gradient(180deg, #6ecf6e 0%, #4da84d 100%);
       color: white;
       font-weight: 700;
@@ -69,56 +70,21 @@
     .header-left {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-    }
-
-    .flag-icon {
-      width: 24px;
-      height: 16px;
-      border-radius: 2px;
-      background: linear-gradient(180deg, #012169 0%, #012169 33%, #fff 33%, #fff 66%, #C8102E 66%, #C8102E 100%);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-      position: relative;
-      overflow: hidden;
-    }
-    .flag-icon::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: linear-gradient(to bottom, transparent 45%, #C8102E 45%, #C8102E 55%, transparent 55%);
-    }
-    .flag-icon::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: linear-gradient(to right, transparent 40%, #fff 40%, #fff 60%, transparent 60%);
+      width: 100%;
     }
 
     .header-message {
       background: rgba(0,0,0,0.2);
-      padding: 6px 14px;
+      padding: 2px 14px;
       border-radius: 20px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 200px;
-    }
-
-    .gem-counter {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.9rem;
-    }
-
-    .gem-icon {
-      width: 18px;
-      height: 18px;
-      background: linear-gradient(135deg, #4fc3f7, #0288d1);
-      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-      box-shadow: 0 0 6px rgba(79, 195, 247, 0.6);
+      max-width: 90%;
     }
 
     /* ========== PLAYER PANEL ========== */
@@ -127,7 +93,7 @@
       align-items: center;
       justify-content: space-between;
       background: linear-gradient(180deg, #8fe02a 0%, #6cb818 100%);
-      padding: 3px 14px;
+      padding: calc(2px + var(--xp, 0px) * 0.25) 12px;
       flex-shrink: 0;
       position: relative;
       border-bottom: 2px solid #5a9e14;
@@ -135,15 +101,25 @@
 
     .player-side {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      gap: 1px;
-      width: 90px;
+      gap: 6px;
+      width: 40%;
     }
+    .player-side:last-child { flex-direction: row-reverse; }
+    .player-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0;
+      line-height: 1;
+    }
+    .player-side:last-child .player-info { align-items: flex-end; }
 
     .avatar {
-      width: 32px;
-      height: 32px;
+      width: calc(34px + var(--xp, 0px) * 0.5);
+      height: calc(34px + var(--xp, 0px) * 0.5);
+      flex-shrink: 0;
       border-radius: 50%;
       border: 2px solid #fff;
       background: #fff;
@@ -174,7 +150,7 @@
     }
 
     .player-score {
-      font-size: 1.15rem;
+      font-size: 1.5rem;
       font-weight: 900;
       color: #fff;
       text-shadow: 2px 2px 0 rgba(0,0,0,0.15);
@@ -182,8 +158,8 @@
     }
 
     .center-turn-indicator {
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: radial-gradient(circle at 40% 35%, #e8f5e0, #a8d080);
       border: 2px solid #fff;
@@ -196,7 +172,7 @@
     }
 
     .turn-letter {
-      font-size: 1.3rem;
+      font-size: 1.05rem;
       font-weight: 900;
       color: #4a8a2a;
       text-shadow: 1px 1px 0 #fff;
@@ -216,10 +192,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2px 2px;
+      padding: 2px;
       background: #b8d4b0;
       min-height: 0;
+      min-width: 0;
       position: relative;
+      overflow: hidden;
     }
 
     .board-wrapper {
@@ -227,11 +205,10 @@
       padding: 4px;
       border-radius: 6px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      /* dimensioni esatte impostate da fitBoard() (JS) per avere sempre celle quadrate */
       width: 100%;
-      height: 100%;
-      max-width: 600px;
-      max-height: 100%;
       aspect-ratio: 1/1;
+      flex: 0 0 auto;
       display: flex;
       min-width: 0;
       min-height: 0;
@@ -467,13 +444,13 @@
     /* ========== RACK ========== */
     .rack-section {
       background: linear-gradient(180deg, #d4aa7c 0%, #b88a5c 100%);
-      padding: 12px 10px 10px;
+      padding: calc(6px + var(--xr, 0px) * 0.5) 8px calc(6px + var(--xr, 0px) * 0.5);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
       flex-shrink: 0;
-      border-top: 3px solid #a07040;
+      border-top: 2px solid #a07040;
       box-shadow: 0 -3px 10px rgba(0,0,0,0.2);
       position: relative;
     }
@@ -481,7 +458,7 @@
     .rack-slots {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: clamp(4px, 1.8vw, 8px);
+      gap: clamp(3px, 1.4vw, 6px);
       width: 100%;
       max-width: 420px;
     }
@@ -533,7 +510,7 @@
     /* ========== BOTTOM BAR ========== */
     .bottom-bar {
       background: linear-gradient(180deg, #5a9e44 0%, #3d7a2e 100%);
-      padding: 8px 8px;
+      padding: 5px 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -543,8 +520,8 @@
     }
 
     .icon-btn {
-      width: 34px;
-      height: 34px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: rgba(255,255,255,0.15);
       border: 2px solid rgba(255,255,255,0.4);
@@ -565,7 +542,7 @@
 
     .main-action-btn {
       flex: 1;
-      padding: 10px 10px;
+      padding: 7px 10px;
       border-radius: 30px;
       background: linear-gradient(180deg, #ffd54f 0%, #ffb300 100%);
       border: none;
@@ -612,7 +589,7 @@
 
     .invia-btn {
       flex: 1;
-      padding: 10px 10px;
+      padding: 7px 10px;
       border-radius: 30px;
       background: transparent;
       border: 2px solid rgba(255,255,255,0.8);
@@ -635,7 +612,7 @@
 
     .scambia-btn {
       flex: 1;
-      padding: 10px 10px;
+      padding: 7px 10px;
       border-radius: 30px;
       background: linear-gradient(180deg, #ffa726 0%, #f57c00 100%);
       border: none;
@@ -658,7 +635,7 @@
       background: rgba(0,0,0,0.2);
       border: 2px solid rgba(255,255,255,0.35);
       border-radius: 20px;
-      padding: 6px 10px;
+      padding: 4px 9px;
       color: #fff;
       font-weight: 800;
       font-size: 0.8rem;
@@ -892,13 +869,8 @@
   <!-- HEADER -->
   <div class="header">
     <div class="header-left">
-      <div class="flag-icon"></div>
       <div class="header-message" id="headerMessage">Turno: Tu</div>
       <div class="icon-btn small-close" id="swapCloseBtn" style="display:none;" title="Annulla cambio">✕</div>
-    </div>
-    <div class="gem-counter">
-      <div class="gem-icon"></div>
-      <span id="gemCount">123</span>
     </div>
   </div>
 
@@ -908,8 +880,10 @@
   <div class="player-panel">
     <div class="player-side">
       <div class="avatar player-avatar">👤</div>
-      <div class="player-name">TU</div>
-      <div class="player-score" id="playerScoreDisplay">0</div>
+      <div class="player-info">
+        <div class="player-name">TU</div>
+        <div class="player-score" id="playerScoreDisplay">0</div>
+      </div>
     </div>
 
     <div class="center-turn-indicator" id="turnIndicator">
@@ -918,8 +892,10 @@
 
     <div class="player-side">
       <div class="avatar cpu-avatar">🤖</div>
-      <div class="player-name">CPU</div>
-      <div class="player-score" id="cpuScoreDisplay">0</div>
+      <div class="player-info">
+        <div class="player-name">CPU</div>
+        <div class="player-score" id="cpuScoreDisplay">0</div>
+      </div>
     </div>
   </div>
 
@@ -970,6 +946,49 @@
   setRealViewportHeight();
   window.addEventListener('resize', setRealViewportHeight);
   window.addEventListener('orientationchange', () => setTimeout(setRealViewportHeight, 100));
+
+  // Tabellone sempre QUADRATO: prende il lato massimo disponibile (min tra larghezza e
+  // altezza dell'area centrale) e lo arrotonda in modo che le 15x15 celle siano intere.
+  function fitBoard() {
+    const sec = document.querySelector('.board-section');
+    const wrap = document.querySelector('.board-wrapper');
+    if (!sec || !wrap) return;
+    const cs = getComputedStyle(sec);
+    const availW = sec.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const availH = sec.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const avail = Math.min(availW, availH, 640);
+    if (avail <= 0) return;
+    const pad = 4 * 2;      // padding del wrapper
+    const gaps = 2 * 14;    // 14 gap da 2px tra 15 celle
+    const cell = Math.max(8, Math.floor((avail - pad - gaps) / 15));
+    const size = cell * 15 + gaps + pad;
+    wrap.style.width = size + 'px';
+    wrap.style.height = size + 'px';
+
+    // Spazio verticale che avanza (schermi alti): lo ridistribuisco a fascia punteggio e
+    // lettere, senza deformare il tabellone. Il calcolo parte dallo spazio "base" (senza
+    // gli extra già applicati) per non entrare in oscillazione.
+    const secPad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    const baseLeft = sec.clientHeight - secPad - size + fitBoard.xp + fitBoard.xr;
+    const spare = Math.max(0, baseLeft - 8);
+    const xp = Math.min(Math.round(spare * 0.30), 24);
+    const xr = Math.min(Math.round(spare * 0.20), 20);
+    fitBoard.xp = xp; fitBoard.xr = xr;
+    document.documentElement.style.setProperty('--xp', xp + 'px');
+    document.documentElement.style.setProperty('--xr', xr + 'px');
+    setTimeout(() => { try { drawOverlays(); } catch (e) {} }, 30);
+  }
+  fitBoard.xp = 0; fitBoard.xr = 0;
+  window.addEventListener('resize', fitBoard);
+  window.addEventListener('orientationchange', () => setTimeout(fitBoard, 150));
+  window.addEventListener('load', fitBoard);
+  if (window.ResizeObserver) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const sec = document.querySelector('.board-section');
+      if (sec) new ResizeObserver(fitBoard).observe(sec);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', fitBoard);
 
   // ==================== COSTANTI ====================
   // Valori e distribuzione ufficiali delle lettere italiane (Scrabble), 120 tessere totali:
@@ -2116,7 +2135,6 @@
     updateScores();
     renderBoard();
     renderRack();
-    document.getElementById('gemCount').textContent = gems;
 
     headerMessageEl.textContent = `Hai giocato ${wordsPlayed} per ${scorePlayed} punti`;
     showNotification(`+${scorePlayed} punti! ${wordsPlayed}`, 2500);
@@ -2425,8 +2443,7 @@
       swapSelection = [];
       clearSelection();
 
-      document.getElementById('gemCount').textContent = gems;
-      updateBagDisplay();
+        updateBagDisplay();
       updateScores();
       renderBoard();
       renderRack();
@@ -2472,7 +2489,6 @@
     firstMoveDone = false;
     isCpuThinking = false;
     gems = 123;
-    document.getElementById('gemCount').textContent = gems;
     updateBagDisplay();
     updateScores();
     renderBoard();
