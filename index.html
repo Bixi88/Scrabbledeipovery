@@ -364,19 +364,21 @@
     .word-frame {
       position: absolute;
       box-sizing: border-box;
-      border: 3px solid #2e7d32;
-      border-radius: 9px;
+      border: 3px solid #2e9a1f;
+      border-radius: 5px;
     }
     .word-frame.invalid { border-color: #c62828; }
+    /* Misure prese dalla reference (in proporzione alla cella):
+       rombo verde = lato 0.47 cella, centrato sull'angolo della cornice;
+       pallino blu = diametro 0.65 cella, centrato sull'angolo basso-destra della parola. */
     .score-badge {
       position: absolute;
-      width: 22px;
-      height: 22px;
-      background: #2e7d32;
-      border: 2px solid #fff;
-      border-radius: 6px;
+      width: calc(var(--cell, 24px) * 0.47);
+      height: calc(var(--cell, 24px) * 0.47);
+      background: #1f9a12;
+      border: 0;
+      border-radius: calc(var(--cell, 24px) * 0.05);
       transform: translate(-50%, -50%) rotate(45deg);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.35);
     }
     .score-badge span {
       position: absolute;
@@ -386,26 +388,28 @@
       justify-content: center;
       transform: rotate(-45deg);
       color: #fff;
-      font-size: 0.6rem;
-      font-weight: 800;
+      font-size: calc(var(--cell, 24px) * 0.34);
+      font-weight: 500;
+      letter-spacing: -0.02em;
     }
     .last-move-badge {
       position: absolute;
-      min-width: 17px;
-      height: 17px;
-      padding: 0 3px;
+      width: calc(var(--cell, 24px) * 0.65);
+      height: calc(var(--cell, 24px) * 0.65);
+      padding: 0;
       box-sizing: border-box;
       background: #1a3cff;
       color: #fff;
-      border: 2px solid #fff;
-      border-radius: 10px;
-      font-size: 0.55rem;
-      font-weight: 800;
+      border: 0;
+      border-radius: 50%;
+      font-size: calc(var(--cell, 24px) * 0.34);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       transform: translate(-50%, -50%);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
     }
 
     /* Tessera "fantasma" che segue il dito durante il trascinamento (niente zoom di schermata) */
@@ -896,7 +900,7 @@
     /* Ultima parola giocata: caselle evidenziate (blu = avversario, verde = tu) */
     .cell.occupied.last-opp { background: #ffe9a3; box-shadow: inset 0 0 0 2px #1a3cff; }
     .cell.occupied.last-mine { background: #e3f3d0; box-shadow: inset 0 0 0 2px #2e7d32; }
-    .last-move-badge.mine { background: #2e7d32; }
+    .last-move-badge.mine { background: #1f9a12; }
 
     ::-webkit-scrollbar { display: none; }
   </style>
@@ -2038,10 +2042,10 @@
         words.forEach((cells, i) => {
           const first = cellEl(cells[0][0], cells[0][1]).getBoundingClientRect();
           const last = cellEl(cells[cells.length - 1][0], cells[cells.length - 1][1]).getBoundingClientRect();
-          const left = Math.min(first.left, last.left) - wr.left - 2;
-          const top = Math.min(first.top, last.top) - wr.top - 2;
-          const right = Math.max(first.right, last.right) - wr.left + 2;
-          const bottom = Math.max(first.bottom, last.bottom) - wr.top + 2;
+          const left = Math.min(first.left, last.left) - wr.left - 3;
+          const top = Math.min(first.top, last.top) - wr.top - 3;
+          const right = Math.max(first.right, last.right) - wr.left + 3;
+          const bottom = Math.max(first.bottom, last.bottom) - wr.top + 3;
           const f = document.createElement('div');
           f.className = 'word-frame' + (result.valid ? '' : ' invalid');
           f.style.left = left + 'px';
@@ -2053,7 +2057,7 @@
         });
         if (result.valid && mainRect) {
           // Rombo verde appoggiato all'angolo della cornice, tutto fuori dalle lettere
-          const pos = badgeOutsideCorner(mainRect.cells, wr, 10);
+          const pos = badgeOutsideCorner(mainRect.cells, wr, 1.5);
           const b = document.createElement('div');
           b.className = 'score-badge';
           b.style.left = pos.x + 'px';
@@ -2067,7 +2071,7 @@
     if (lastMove && board[lastMove.row][lastMove.col]) {
       // Pallino dei punti dell'ultima parola: sull'angolo esterno della parola, mai sulle lettere
       const cells = (lastMove.cells && lastMove.cells.length) ? lastMove.cells : [[lastMove.row, lastMove.col]];
-      const pos = badgeOutsideCorner(cells, wr, 8);
+      const pos = badgeOutsideCorner(cells, wr, 0.07 * cellEl(lastMove.row, lastMove.col).getBoundingClientRect().width);
       const b = document.createElement('div');
       b.className = 'last-move-badge' + (lastMove.mine ? ' mine' : '');
       b.style.left = pos.x + 'px';
