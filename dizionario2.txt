@@ -3,3 +3,6 @@ coro
 mole
 re
 hq
+qua
+qui
+qi
