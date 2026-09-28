@@ -953,6 +953,12 @@
     .mp-badge { margin-left: auto; flex-shrink: 0; padding: 5px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 800; background: #ffb300; color: #3b2a00; white-space: nowrap; }
     .mp-badge.wait { background: #e0e6de; color: #4b5a48; }
     .mp-badge.done { background: #cfe3f3; color: #1d4560; }
+    .mp-del {
+      margin-left: 8px; flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+      border: 0; background: #f0d9d9; color: #8a2c2c; font-size: 0.85rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer;
+    }
+    .mp-del:active { background: #e3bcbc; }
     .mp-hist-row { display: flex; gap: 10px; align-items: baseline; padding: 10px 16px; border-bottom: 1px solid #eee; font-size: 0.9rem; color: #26401d; }
     .mp-hist-row .n { color: #8a9a86; font-size: 0.75rem; width: 30px; flex-shrink: 0; }
     .mp-hist-row .tx { flex: 1; font-weight: 700; }
@@ -3284,8 +3290,10 @@
       } else if (g.turnUid === mp.uid) { badge = 'Tocca a te'; }
       else { badge = 'Tocca a ' + esc(g.names[opp] || 'lui/lei'); cls = 'wait'; }
     }
+    const delBtn = g.status === 'finished'
+      ? '<button class="mp-del" data-act="del" data-id="' + esc(id) + '" title="Elimina partita">✕</button>' : '';
     return '<div class="mp-row" data-act="open" data-id="' + esc(id) + '"><div style="min-width:0;flex:1;"><div class="who">' + title +
-      '</div><div class="sub">' + sub + '</div></div><div class="mp-badge ' + cls + '">' + badge + '</div></div>';
+      '</div><div class="sub">' + sub + '</div></div><div class="mp-badge ' + cls + '">' + badge + '</div>' + delBtn + '</div>';
   }
 
   function mpRenderHome() {
@@ -3334,6 +3342,7 @@
     else if (act === 'home') mpShowHome();
     else if (act === 'nick') { const v = document.getElementById('mpNickInput').value; mpRun(() => mpSubmitNick(v)); }
     else if (act === 'retry') mpStart();
+    else if (act === 'del') mpRun(() => mpDeleteGame(el.dataset.id));
     else if (act === 'pushOn') mpRun(pushEnable);
     else if (act === 'pushOff') mpRun(pushDisable);
     else if (act === 'wa') {
@@ -3476,7 +3485,7 @@
     mpCloseGameListener();
     closeModal();
     gameMode = 'mp';
-    mp.gameId = id; mp.game = null; mp.appliedVersion = -1; mp.rematchPrompted = false;
+    mp.gameId = id; mp.game = null; mp.appliedVersion = -1; mp.rematchPrompted = false; mp.animatedMoveN = 0;
     mpShowScreen('loading', '<div class="mp-body"><div class="mp-note" style="margin-top:40vh;">Carico la partita…</div></div>');
     mp.unsubGame = mp.FB.onSnapshot(mp.FB.doc(mp.db, 'games', id), mpOnGameSnap, (err) => {
       console.warn('Partita:', err);
@@ -3503,6 +3512,7 @@
     if (swapMode) exitSwapMode();
     if (modalOverlay.style.display !== 'none') closeModal();
 
+    const prevPlayerScore = playerScore, prevCpuScore = cpuScore;
     const oldRack = playerRack, oldPending = pendingTiles;
     let draftDropped = 0;
     const slot = d.players.indexOf(mp.uid), opp = 1 - slot;
@@ -3562,14 +3572,36 @@
     updateTurnIndicator();
     if (mp.screen === 'loading') mpHideScreen();
 
-    if (gameOver) {
-      mpShowResult(d);
-    } else {
-      syncUI();
-      const last = moves[moves.length - 1];
-      if (last && last.by !== slot) {
-        showNotification(mpMoveText(d, last, slot) + (firstApply ? ' · ' + mpAgo(last.t) : '') + (draftDropped ? ' · le tue tessere sono tornate in mano' : ''), 3500);
+    // Anima solo una parola davvero nuova (non il primo caricamento della partita, e non
+    // un aggiornamento che non aggiunge una mossa, come "rivincita creata").
+    let animMove = null;
+    if (!firstApply && moves.length > (mp.animatedMoveN || 0)) {
+      const mv = moves[moves.length - 1];
+      if (mv.type === 'word') animMove = mv;
+    }
+    mp.animatedMoveN = moves.length;
+
+    const finishUp = () => {
+      if (gameOver) {
+        mpShowResult(d);
+      } else {
+        syncUI();
+        const last = moves[moves.length - 1];
+        if (last && last.by !== slot) {
+          showNotification(mpMoveText(d, last, slot) + (firstApply ? ' · ' + mpAgo(last.t) : '') + (draftDropped ? ' · le tue tessere sono tornate in mano' : ''), 3500);
+        }
       }
+    };
+
+    if (animMove) {
+      const mine = animMove.by === slot;
+      const scoreEl = mine ? playerScoreEl : cpuScoreEl;
+      const startScore = mine ? prevPlayerScore : prevCpuScore;
+      scoreEl.textContent = startScore;
+      const cellsWithLetters = animMove.tiles.map(t => ({ row: t.r, col: t.c, letter: t.l }));
+      animateWordSubmit(cellsWithLetters, animMove.score, scoreEl, startScore, finishUp);
+    } else {
+      finishUp();
     }
   }
 
@@ -3812,8 +3844,28 @@
         created = true;
         return newRef.id;
       });
-      if (created) mpNotifyOpponent(newId, 'rematch');
+      if (created) {
+        mpNotifyOpponent(newId, 'rematch');
+        try { await FB.deleteDoc(oldRef); } catch (e) { /* le regole potrebbero non essere ancora aggiornate: non bloccare la rivincita */ }
+      }
       mpOpenGame(newId);
+    } catch (err) {
+      showNotification(mpErrText(err), 3500);
+    }
+  }
+
+  // ---------- eliminare una partita conclusa ----------
+  // Una partita si può eliminare solo quando è finita (vinta, persa, pari o abbandonata):
+  // così in "Concluse" resta solo finché serve, non per sempre. Richiede che le regole
+  // di Firestore (firestore.rules) siano aggiornate e ripubblicate, perché di default
+  // cancellare un documento "games" non è permesso.
+  async function mpDeleteGame(id) {
+    const g = mp.games[id];
+    if (!g || g.status !== 'finished') return;
+    if (!confirm('Eliminare questa partita conclusa? Non si può annullare.')) return;
+    if (!navigator.onLine) { showNotification(mpErrText(mpErr('offline')), 3000); return; }
+    try {
+      await mp.FB.deleteDoc(mp.FB.doc(mp.db, 'games', id));
     } catch (err) {
       showNotification(mpErrText(err), 3500);
     }
