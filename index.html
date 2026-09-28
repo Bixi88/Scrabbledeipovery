@@ -1230,7 +1230,9 @@
     modalSheet.innerHTML = '';
   }
 
+  let modalOpenedAt = 0;
   function openModal(html) {
+    modalOpenedAt = Date.now();
     modalSheet.innerHTML = html;
     modalOverlay.style.display = 'flex';
     const x = modalSheet.querySelector('.modal-x');
@@ -1238,7 +1240,7 @@
   }
 
   modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) closeModal();
+    if (e.target === modalOverlay && Date.now() - modalOpenedAt > 400) closeModal();
   });
 
   function openOptionsModal() {
@@ -1357,8 +1359,13 @@
     `);
     const rec = modalSheet.querySelector('#blankRecall');
     if (rec) rec.addEventListener('click', () => { closeModal(); callback('RECALL'); });
+    // Il picker si apre durante il pointerup del tocco sulla tessera: il "click" che il
+    // browser genera subito dopo cadrebbe su una lettera del picker (es. la G) e la sceglierebbe.
+    // Ignoriamo i click nei primi 400 ms.
+    const pickerOpenedAt = Date.now();
     modalSheet.querySelectorAll('.blank-letter-btn').forEach(el => {
       el.addEventListener('click', () => {
+        if (Date.now() - pickerOpenedAt < 400) return;
         const chosen = el.dataset.l;
         closeModal();
         callback(chosen);
