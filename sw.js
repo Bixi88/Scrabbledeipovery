@@ -1,4 +1,4 @@
-// Service worker di "Scrabble GO · CPU".
+// Service worker di "Scrabble GO".
 // Pre-cachea il gioco e i dizionari così funziona anche offline dal secondo avvio,
 // ma dà sempre priorità alla rete: appena pubblichi un commit su GitHub, il primo
 // dispositivo online lo scarica subito (niente più bisogno di alzare a mano un
@@ -52,6 +52,12 @@ self.addEventListener('activate', (event) => {
 // in cache come riserva offline.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // Multiplayer: le chiamate API di Firebase (Firestore/Auth) sono connessioni continue
+  // e non vanno intercettate né messe in cache. Gli script dell'SDK (gstatic) invece sì,
+  // così l'app riparte anche offline.
+  const host = new URL(event.request.url).hostname;
+  if (/^(firestore|identitytoolkit|securetoken|firebaseinstallations)\.googleapis\.com$/.test(host)) return;
 
   event.respondWith(
     fetch(event.request)

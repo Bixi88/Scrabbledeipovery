@@ -1,7 +1,7 @@
 {
-  "name": "Scrabble GO · CPU",
+  "name": "Scrabble GO",
   "short_name": "Scrabble GO",
-  "description": "Scrabble in italiano contro la CPU, gioca offline dopo il primo avvio.",
+  "description": "Scrabble in italiano: sfida la CPU (anche offline) o gioca a distanza, ognuno quando può.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

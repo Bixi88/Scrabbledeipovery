@@ -821,12 +821,14 @@
       border-radius: 24px;
       font-size: 0.85rem;
       font-weight: 600;
-      z-index: 100;
+      z-index: 400;
       box-shadow: 0 6px 20px rgba(0,0,0,0.4);
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.3s, transform 0.3s;
-      white-space: nowrap;
+      white-space: normal;
+      width: max-content;
+      text-align: center;
       max-width: 90%;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -838,6 +840,64 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    /* ========== MULTIPLAYER: schermate, elenco partite, evidenziazione ultima parola ========== */
+    .mp-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 200;
+      background: #d9edf8;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      color: #26401d;
+    }
+    .mp-top { background: #4e9f5f; color: #fff; padding: 18px 16px 14px; text-align: center; flex-shrink: 0; }
+    .mp-top .t1 { font-weight: 900; font-size: 1.6rem; letter-spacing: 0.08em; }
+    .mp-top .t2 { opacity: 0.9; font-size: 0.9rem; margin-top: 2px; }
+    .mp-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .mp-title { font-weight: 900; font-size: 1.35rem; text-align: center; margin-top: 8px; }
+    .mp-note { font-size: 0.85rem; color: #4b5a48; text-align: center; line-height: 1.4; }
+    .mp-error { background: #fdecea; color: #b3261e; padding: 10px 12px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; }
+    .mp-btn {
+      border: 0; border-radius: 14px; padding: 14px 16px;
+      font-weight: 800; font-size: 1rem;
+      background: #4e9f5f; color: #fff; cursor: pointer;
+      box-shadow: 0 3px 0 #3a7d49;
+    }
+    .mp-btn.ghost { background: #fff; color: #26401d; box-shadow: 0 3px 0 #c5d2c2; }
+    .mp-btn:active { transform: translateY(2px); box-shadow: none; }
+    .mp-btn-row { display: flex; gap: 10px; padding: 14px 16px; }
+    .mp-btn-row .mp-btn { flex: 1; }
+    .mp-input {
+      width: 100%; font-size: 18px; padding: 14px; border-radius: 12px;
+      border: 2px solid #4e9f5f; background: #fff; color: #26401d;
+      user-select: text; -webkit-user-select: text;
+    }
+    .mp-code-input { text-align: center; letter-spacing: 0.3em; font-weight: 800; text-transform: uppercase; }
+    .mp-code { font-size: 2.2rem; font-weight: 900; letter-spacing: 0.25em; text-align: center; user-select: text; -webkit-user-select: text; }
+    .mp-link { word-break: break-all; font-size: 0.85rem; background: #fff; padding: 10px; border-radius: 10px; user-select: text; -webkit-user-select: text; }
+    .mp-section-title { font-weight: 800; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: #3a5a3a; margin: 8px 2px -4px; }
+    .mp-row {
+      background: #fff; border-radius: 14px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12); cursor: pointer;
+    }
+    .mp-row:active { background: #f2f2f2; }
+    .mp-row .who { font-weight: 800; }
+    .mp-row .sub { font-size: 0.78rem; color: #5b6b58; margin-top: 2px; }
+    .mp-badge { margin-left: auto; flex-shrink: 0; padding: 5px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 800; background: #ffb300; color: #3b2a00; white-space: nowrap; }
+    .mp-badge.wait { background: #e0e6de; color: #4b5a48; }
+    .mp-badge.done { background: #cfe3f3; color: #1d4560; }
+    .mp-hist-row { display: flex; gap: 10px; align-items: baseline; padding: 10px 16px; border-bottom: 1px solid #eee; font-size: 0.9rem; color: #26401d; }
+    .mp-hist-row .n { color: #8a9a86; font-size: 0.75rem; width: 30px; flex-shrink: 0; }
+    .mp-hist-row .tx { flex: 1; font-weight: 700; }
+    .mp-hist-row .ago { color: #8a9a86; font-size: 0.75rem; flex-shrink: 0; }
+
+    /* Ultima parola giocata: caselle evidenziate (blu = avversario, verde = tu) */
+    .cell.occupied.last-opp { background: #ffe9a3; box-shadow: inset 0 0 0 2px #1a3cff; }
+    .cell.occupied.last-mine { background: #e3f3d0; box-shadow: inset 0 0 0 2px #2e7d32; }
+    .last-move-badge.mine { background: #2e7d32; }
+
     ::-webkit-scrollbar { display: none; }
   </style>
 </head>
@@ -846,6 +906,7 @@
   <!-- HEADER -->
   <div class="header">
     <div class="header-left">
+      <div class="icon-btn small-close" id="backBtn" style="display:none;" title="Elenco partite">←</div>
       <div class="header-message" id="headerMessage">Turno: Tu</div>
       <div class="icon-btn small-close" id="swapCloseBtn" style="display:none;" title="Annulla cambio">✕</div>
     </div>
@@ -858,15 +919,15 @@
     <div class="player-side" id="playerCard">
       <div class="avatar player-avatar">👤</div>
       <div class="player-info">
-        <div class="player-name">Tu</div>
+        <div class="player-name" id="playerNameEl">Tu</div>
         <div class="player-score" id="playerScoreDisplay">0</div>
       </div>
     </div>
 
     <div class="player-side cpu-side" id="cpuCard">
-      <div class="avatar cpu-avatar">🤖</div>
+      <div class="avatar cpu-avatar" id="cpuAvatarEl">🤖</div>
       <div class="player-info">
-        <div class="player-name">CPU</div>
+        <div class="player-name" id="cpuNameEl">CPU</div>
         <div class="player-score" id="cpuScoreDisplay">0</div>
       </div>
     </div>
@@ -912,6 +973,9 @@
 
   <!-- NOTIFICATION -->
   <div class="notification" id="notification"></div>
+
+  <!-- SCHERMATE MULTIPLAYER (nickname, elenco partite, invito) -->
+  <div class="mp-screen" id="mpScreen"></div>
 
   <!-- MODALE OPZIONI / SACCHETTO / COME SI GIOCA -->
   <div class="modal-overlay" id="modalOverlay" style="display:none;">
@@ -1105,6 +1169,7 @@
   let hoverCellEl = null;
   let swapMode = false;         // true mentre il giocatore sta scegliendo le tessere da cambiare
   let swapSelection = [];       // indici del rack marcati per il cambio
+  let gameMode = 'cpu';         // 'cpu' = partita contro la CPU (salvata in localStorage), 'mp' = multiplayer (stato su Firestore)
 
   // ==================== DOM ====================
   const boardEl = document.getElementById('board');
@@ -1127,6 +1192,10 @@
   const modalOverlay = document.getElementById('modalOverlay');
   const modalSheet = document.getElementById('modalSheet');
   const bagCountEl = document.getElementById('bagCount');
+  const playerNameEl = document.getElementById('playerNameEl');
+  const cpuNameEl = document.getElementById('cpuNameEl');
+  const cpuAvatarEl = document.getElementById('cpuAvatarEl');
+  const backBtn = document.getElementById('backBtn');
 
   // ==================== UTILITY ====================
   function createBag() {
@@ -1187,10 +1256,25 @@
         <div class="modal-option-icon" style="background:#29b6f6;">🔁</div>
         Scambio tessera
       </div>
+      ${gameMode === 'mp' ? `
+      <div class="modal-option" data-action="history">
+        <div class="modal-option-icon" style="background:#26a69a;">📜</div>
+        Cronologia mosse
+      </div>
+      ${mp.game && mp.game.status === 'active' ? `
+      <div class="modal-option" data-action="resign">
+        <div class="modal-option-icon" style="background:#e53935;">🏳</div>
+        Arrenditi
+      </div>` : ''}` : `
       <div class="modal-option" data-action="newgame">
         <div class="modal-option-icon" style="background:#e53935;">🚩</div>
         Nuova partita
-      </div>
+      </div>`}
+      ${MP_ENABLED ? `
+      <div class="modal-option" data-action="home">
+        <div class="modal-option-icon" style="background:#4e9f5f;">☰</div>
+        Elenco partite
+      </div>` : ''}
     `);
     modalSheet.querySelectorAll('.modal-option').forEach(el => {
       el.addEventListener('click', () => {
@@ -1199,6 +1283,9 @@
         else if (action === 'howto') { openHowToModal(); }
         else if (action === 'skip') { closeModal(); skipTurn(); }
         else if (action === 'swap') { closeModal(); toggleSwapMode(); }
+        else if (action === 'history') { mpOpenHistory(); }
+        else if (action === 'resign') { closeModal(); mpResign(); }
+        else if (action === 'home') { closeModal(); mpGoHome(); }
         else if (action === 'newgame') {
           closeModal();
           if (confirm('Vuoi iniziare una nuova partita? Quella in corso andrà persa.')) { clearSavedGame(); newGame(); }
@@ -1229,7 +1316,7 @@
       <div class="modal-header">Sacchetto<div class="modal-x">✕</div></div>
       <div class="bag-modal-counts">
         <div class="bag-modal-count">👤 Tu: ${playerRack.length}</div>
-        <div class="bag-modal-count">🤖 CPU: ${cpuRack.length}</div>
+        <div class="bag-modal-count">${gameMode === 'mp' ? '🙂 ' + esc(mp.oppName) : '🤖 CPU'}: ${cpuRack.length}</div>
       </div>
       <div class="bag-modal-total">Tessere ancora nel sacchetto: ${bag.length}</div>
       <div class="bag-modal-grid">${tilesHtml}</div>
@@ -1301,10 +1388,14 @@
   function syncUI() {
     saveGameState();
 
-    if (gameOver) { skipBtn.disabled = true; playBtn.disabled = true; return; }
+    if (gameOver) {
+      skipBtn.disabled = true;
+      if (gameMode === 'mp') mpFinishedButton(); else playBtn.disabled = true;
+      return;
+    }
 
     if (turn !== 'player') {
-      headerMessageEl.textContent = 'CPU sta pensando...';
+      headerMessageEl.textContent = gameMode === 'mp' ? mpWaitingText() : 'CPU sta pensando...';
       playBtn.disabled = true;
       skipBtn.disabled = true;
       return;
@@ -1320,7 +1411,7 @@
     skipBtn.disabled = isCpuThinking || pendingTiles.length > 0;
 
     if (pendingTiles.length === 0) {
-      headerMessageEl.textContent = 'Il tuo turno';
+      headerMessageEl.textContent = gameMode === 'mp' ? mpYourTurnText() : 'Il tuo turno';
       playBtn.disabled = true;
       return;
     }
@@ -1341,12 +1432,16 @@
   // A partita finita restano accesi il vincitore (o entrambi in caso di pareggio).
   function updateTurnIndicator() {
     let playerOn = false, cpuOn = false;
-    if (gameOver) {
+    if (gameOver && gameMode === 'mp' && mp.game) {
+      const w = mp.game.winnerUid;             // in caso di resa vince chi non si è arreso, a prescindere dai punti
+      playerOn = !w || w === mp.uid;
+      cpuOn = !w || w !== mp.uid;
+    } else if (gameOver) {
       playerOn = playerScore >= cpuScore;
       cpuOn = cpuScore >= playerScore;
     } else if (turn === 'player') {
       playerOn = true;
-    } else if (turn === 'cpu') {
+    } else if (turn === 'cpu' || turn === 'opponent') {
       cpuOn = true;
     }
     playerCardEl.classList.toggle('active', playerOn);
@@ -1377,6 +1472,9 @@
         if (board[r][c]) {
           cell.textContent = board[r][c];
           cell.classList.add('occupied');
+          if (lastMove && lastMove.cells && lastMove.cells.some(([lr, lc]) => lr === r && lc === c)) {
+            cell.classList.add(lastMove.mine ? 'last-mine' : 'last-opp');
+          }
           const pts = LETTER_VALUES[board[r][c]] || 0;
           const ptsSpan = document.createElement('span');
           ptsSpan.className = 'tile-points';
@@ -1614,6 +1712,7 @@
       showNotification('Non ci sono abbastanza tessere nel sacchetto.', 2000);
       return;
     }
+    if (gameMode === 'mp') { mpSubmitSwap(); return; }
 
     const lettersToSwap = swapSelection.map(i => playerRack[i]);
     const sortedDesc = [...swapSelection].sort((a, b) => b - a);
@@ -1966,7 +2065,7 @@
     if (lastMove && board[lastMove.row][lastMove.col]) {
       const rc = cellEl(lastMove.row, lastMove.col).getBoundingClientRect();
       const b = document.createElement('div');
-      b.className = 'last-move-badge';
+      b.className = 'last-move-badge' + (lastMove.mine ? ' mine' : '');
       b.style.left = (rc.left - wr.left + 3) + 'px';
       b.style.top = (rc.top - wr.top + 3) + 'px';
       b.textContent = lastMove.score;
@@ -2110,6 +2209,8 @@
       return;
     }
 
+    if (gameMode === 'mp') { mpSubmitWord(result); return; }
+
     commitMove(pendingTiles);
     lastMove = null;
     playerScore += result.score;
@@ -2145,6 +2246,7 @@
       showNotification('Ritira prima le lettere piazzate.', 1500);
       return;
     }
+    if (gameMode === 'mp') { mpSubmitPass(); return; }
     clearSelection();
     renderBoard();
     renderRack();
@@ -2158,6 +2260,9 @@
 
   // ==================== CPU ====================
   function cpuMove() {
+    // Se nel frattempo sei uscito dalla partita CPU (o sei entrato in una online) non toccare lo stato:
+    // la mossa in sospeso verrà rigiocata quando riapri la partita CPU (vedi loadSavedGame).
+    if (gameMode !== 'cpu') return;
     if (gameOver) {
       isCpuThinking = false;
       return;
@@ -2389,6 +2494,7 @@
   const SAVE_KEY = 'scrabbleGoPoveryPartitaSalvata';
 
   function saveGameState() {
+    if (gameMode !== 'cpu') return;   // nel multiplayer lo stato vero è su Firestore; localStorage resta della partita CPU
     try {
       const state = {
         v: 1,
@@ -2487,8 +2593,864 @@
     showNotification('Nuova partita! Inizia tu.', 2000);
   }
 
+  // ==================== MULTIPLAYER ASINCRONO (Firebase) ====================
+  // Due persone, ognuna muove quando vuole. Lo stato "vero" della partita sta in un
+  // documento Firestore (games/{id}); le variabili globali del gioco (board, playerRack,
+  // cpuRack, turn...) vengono riempite da quel documento (mpApplyState). In modalità
+  // multiplayer "cpuRack/cpuScore" sono semplicemente rack e punteggio dell'AVVERSARIO e
+  // turn vale 'player' | 'opponent' | 'none'. La modalità CPU non viene toccata.
+  //
+  // >>> Incolla qui sotto la configurazione del tuo progetto Firebase (vedi ISTRUZIONI). <<<
+  // Finché apiKey resta "INCOLLA_QUI" il multiplayer è spento e l'app si comporta come prima.
+  const FIREBASE_SDK_VERSION = '10.13.1';
+  const FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyA5YsmVyaxrfm_PffklxtQEIQ2-WAjZDYM',
+    authDomain: 'scrabble-deipovery.firebaseapp.com',
+    projectId: 'scrabble-deipovery',
+    storageBucket: 'scrabble-deipovery.firebasestorage.app',
+    messagingSenderId: '1070376959010',
+    appId: '1:1070376959010:web:d048e66c28faff93ebde7b'
+  };
+
+  const MP_ENABLED = !!FIREBASE_CONFIG.apiKey && !/^INCOLLA/.test(FIREBASE_CONFIG.apiKey) && !!FIREBASE_CONFIG.projectId;
+  // Turni consecutivi senza punti (passo o cambio tessere) dopo i quali la partita finisce:
+  // 4 = due a testa. Cambialo qui se vuoi una regola diversa (le regole ufficiali ne prevedono 6).
+  const MP_PASS_LIMIT = 4;
+  const MP_NICK_KEY = 'scrabbleMpNickname';
+  const MP_JOIN_KEY = 'scrabbleMpPendingJoin';
+  const MP_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  const mp = {
+    FB: null, app: null, auth: null, db: null,
+    uid: null, nick: '',
+    games: {}, listError: '',
+    unsubList: null, unsubGame: null,
+    gameId: null, game: null, slot: 0, oppName: 'Avversario',
+    appliedVersion: -1, rematchPrompted: false,
+    screen: null, inviteId: null, busy: false, offline: false
+  };
+
+  // ---------- utilità ----------
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function mpErr(code) { const e = new Error(code); e.mpCode = code; return e; }
+
+  function mpAgo(ms) {
+    if (!ms) return '';
+    const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+    if (s < 60) return 'adesso';
+    const m = Math.floor(s / 60);
+    if (m < 60) return m + ' min fa';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + (h === 1 ? ' ora fa' : ' ore fa');
+    const d = Math.floor(h / 24);
+    return d + (d === 1 ? ' giorno fa' : ' giorni fa');
+  }
+
+  function mpFlatBoard(b) { return b.map(row => row.map(c => c || '.').join('')).join(''); }
+  function mpUnflatBoard(str) {
+    const out = [];
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      out.push(str.slice(r * BOARD_SIZE, (r + 1) * BOARD_SIZE).split('').map(ch => ch === '.' ? null : ch));
+    }
+    return out;
+  }
+
+  function mpRandomCode() {
+    let s = '';
+    for (let i = 0; i < 6; i++) s += MP_CODE_ALPHABET[Math.floor(Math.random() * MP_CODE_ALPHABET.length)];
+    return s;
+  }
+
+  function mpBuildLink(code) {
+    return location.origin + location.pathname + '?join=' + code;
+  }
+
+  async function mpRun(fn) {
+    if (mp.busy) return;
+    mp.busy = true;
+    try { await fn(); } finally { mp.busy = false; }
+  }
+
+  function mpErrText(e) {
+    const c = e && (e.mpCode || e.code);
+    switch (c) {
+      case 'offline': case 'unavailable': return 'Nessuna connessione: riprova quando sei online.';
+      case 'timeout': return 'Connessione lenta: controlla se la mossa è arrivata.';
+      case 'stale': case 'notturn': case 'notactive': return 'La partita è cambiata nel frattempo: controlla e riprova.';
+      case 'gone': return 'Partita non trovata.';
+      case 'bag': return 'Non ci sono abbastanza tessere nel sacchetto.';
+      case 'permission-denied': return 'Permesso negato: controlla le regole di Firestore.';
+      case 'auth/operation-not-allowed':
+      case 'auth/admin-restricted-operation': return 'Accesso anonimo non attivo nella console Firebase.';
+      default: return 'Errore: ' + ((e && e.message) || 'sconosciuto');
+    }
+  }
+
+  // ---------- caricamento SDK (solo se serve, così la CPU funziona anche offline) ----------
+  async function mpLoadSdk() {
+    if (mp.FB) return mp.FB;
+    const base = 'https://www.gstatic.com/firebasejs/' + FIREBASE_SDK_VERSION + '/';
+    const [a, b, c] = await Promise.all([
+      import(base + 'firebase-app.js'),
+      import(base + 'firebase-auth.js'),
+      import(base + 'firebase-firestore.js')
+    ]);
+    mp.FB = { ...a, ...b, ...c };
+    return mp.FB;
+  }
+
+  async function mpInit() {
+    const FB = await mpLoadSdk();
+    if (!mp.app) {
+      mp.app = FB.initializeApp(FIREBASE_CONFIG);
+      mp.auth = FB.getAuth(mp.app);
+      try {
+        mp.db = FB.initializeFirestore(mp.app, {
+          localCache: FB.persistentLocalCache({ tabManager: FB.persistentMultipleTabManager() })
+        });
+      } catch (err) {
+        mp.db = FB.getFirestore(mp.app);
+      }
+    }
+    // L'accesso anonimo viene ripristinato da solo dallo storage del browser.
+    const user = await new Promise(res => {
+      const un = FB.onAuthStateChanged(mp.auth, u => { un(); res(u); });
+    });
+    mp.uid = user ? user.uid : null;
+    return user;
+  }
+
+  async function mpFetchNick() {
+    try {
+      const s = await mp.FB.getDoc(mp.FB.doc(mp.db, 'users', mp.uid));
+      if (s.exists() && s.data().nickname) return s.data().nickname;
+    } catch (err) { /* offline o assente */ }
+    return '';
+  }
+
+  // ---------- avvio ----------
+  function mpBoot() {
+    // Chiede al browser di non svuotare lo storage (identità anonima + partita CPU).
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) { /* ignora */ }
+
+    if (!MP_ENABLED) { openCpuGame(); return; }
+    backBtn.style.display = '';
+
+    // Link d'invito: ...index.html?join=CODICE
+    try {
+      const code = new URLSearchParams(location.search).get('join');
+      if (code) {
+        localStorage.setItem(MP_JOIN_KEY, code.trim().toUpperCase());
+        history.replaceState(null, '', location.pathname);
+      }
+    } catch (e) { /* ignora */ }
+
+    mpStart();
+  }
+
+  async function mpStart() {
+    mpShowScreen('loading', '<div class="mp-body"><div class="mp-note" style="margin-top:40vh;">Connessione…</div></div>');
+    try {
+      const user = await mpInit();
+      mp.offline = false;
+      let nick = '';
+      try { nick = localStorage.getItem(MP_NICK_KEY) || ''; } catch (e) { /* ignora */ }
+      if (user && !nick) nick = await mpFetchNick();
+      if (user && nick) {
+        mp.nick = nick;
+        try { localStorage.setItem(MP_NICK_KEY, nick); } catch (e) { /* ignora */ }
+        await mpAfterLogin();
+      } else {
+        mpShowNickScreen('');
+      }
+    } catch (err) {
+      console.warn('Multiplayer non disponibile:', err);
+      mp.offline = true;
+      mpShowHome();
+    }
+  }
+
+  async function mpAfterLogin() {
+    mpSubscribeList();
+    mpShowHome();
+    let code = null;
+    try { code = localStorage.getItem(MP_JOIN_KEY); localStorage.removeItem(MP_JOIN_KEY); } catch (e) { /* ignora */ }
+    if (code) await mpRun(() => mpJoinByCode(code));
+  }
+
+  async function mpSubmitNick(raw) {
+    const nick = String(raw || '').trim().replace(/\s+/g, ' ').slice(0, 16);
+    if (!nick) { mpShowNickScreen('Scrivi un nome.'); return; }
+    try {
+      if (!mp.uid) {
+        const cred = await mp.FB.signInAnonymously(mp.auth);
+        mp.uid = cred.user.uid;
+      }
+      try { await mp.FB.setDoc(mp.FB.doc(mp.db, 'users', mp.uid), { nickname: nick, updatedMs: Date.now() }, { merge: true }); } catch (e) { /* non bloccante */ }
+      try { localStorage.setItem(MP_NICK_KEY, nick); } catch (e) { /* ignora */ }
+      mp.nick = nick;
+      await mpAfterLogin();
+    } catch (err) {
+      mpShowNickScreen(mpErrText(err), nick);
+    }
+  }
+
+  function mpSubscribeList() {
+    if (mp.unsubList) return;
+    const FB = mp.FB;
+    const q = FB.query(FB.collection(mp.db, 'games'), FB.where('players', 'array-contains', mp.uid));
+    mp.unsubList = FB.onSnapshot(q, snap => {
+      mp.listError = '';
+      const games = {};
+      snap.forEach(d => { games[d.id] = d.data(); });
+      mp.games = games;
+      if (mp.screen === 'home') mpRenderHome();
+      if (mp.screen === 'invite' && mp.inviteId) {
+        const g = mp.games[mp.inviteId];
+        if (g && g.status !== 'waiting') {
+          showNotification((g.names[1] || 'Lo sfidante') + ' ha accettato l\'invito!', 3500);
+          mpShowHome();
+        }
+      }
+    }, err => {
+      console.warn('Elenco partite:', err);
+      mp.listError = mpErrText(err);
+      if (mp.screen === 'home') mpRenderHome();
+    });
+  }
+
+  // ---------- schermate ----------
+  const mpScreenEl = document.getElementById('mpScreen');
+
+  function mpShowScreen(name, html) {
+    mp.screen = name;
+    mpScreenEl.innerHTML = html;
+    mpScreenEl.style.display = 'flex';
+    mpScreenEl.scrollTop = 0;
+  }
+
+  function mpHideScreen() {
+    mp.screen = null;
+    mpScreenEl.style.display = 'none';
+    mpScreenEl.innerHTML = '';
+  }
+
+  function mpTopHtml(sub) {
+    return '<div class="mp-top"><div class="t1">SCRABBLE</div><div class="t2">' + esc(sub) + '</div></div>';
+  }
+
+  function mpShowNickScreen(errMsg, value) {
+    mpShowScreen('nick', mpTopHtml('deipovery') + `
+      <div class="mp-body">
+        <div class="mp-title">Come ti chiami?</div>
+        <div class="mp-note">Serve solo per farti riconoscere dall'altra persona. Niente password né account.</div>
+        <input id="mpNickInput" class="mp-input" maxlength="16" autocomplete="off" autocapitalize="words" placeholder="Il tuo nome" value="${esc(value || '')}">
+        ${errMsg ? '<div class="mp-error">' + esc(errMsg) + '</div>' : ''}
+        <button class="mp-btn" data-act="nick">Continua</button>
+        <button class="mp-btn ghost" data-act="cpu">Gioca solo contro la CPU</button>
+      </div>`);
+    const inp = document.getElementById('mpNickInput');
+    if (inp) setTimeout(() => inp.focus(), 50);
+  }
+
+  function mpShowJoinScreen() {
+    mpShowScreen('join', mpTopHtml('Unisciti a una partita') + `
+      <div class="mp-body">
+        <div class="mp-note">Se ti hanno mandato un link, basta aprirlo. Altrimenti scrivi qui il codice di 6 caratteri.</div>
+        <input id="mpCodeInput" class="mp-input mp-code-input" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="CODICE">
+        <button class="mp-btn" data-act="joinGo">Entra</button>
+        <button class="mp-btn ghost" data-act="home">Indietro</button>
+      </div>`);
+    const inp = document.getElementById('mpCodeInput');
+    if (inp) setTimeout(() => inp.focus(), 50);
+  }
+
+  function mpShowInvite(gameId, code) {
+    mp.inviteId = gameId;
+    const link = mpBuildLink(code);
+    mpShowScreen('invite', mpTopHtml('Invita qualcuno') + `
+      <div class="mp-body">
+        <div class="mp-note">Manda questo link (o il codice) alla persona con cui vuoi giocare. Appena lo apre, la partita compare a tutti e due.</div>
+        <div class="mp-code">${esc(code)}</div>
+        <div class="mp-link" id="mpLinkText">${esc(link)}</div>
+        <button class="mp-btn" data-act="wa" data-link="${esc(link)}">Invia su WhatsApp</button>
+        <button class="mp-btn ghost" data-act="share" data-link="${esc(link)}">Condividi…</button>
+        <button class="mp-btn ghost" data-act="copy" data-link="${esc(link)}">Copia il link</button>
+        <button class="mp-btn ghost" data-act="home">Torna alle partite</button>
+      </div>`);
+  }
+
+  function mpShowHome() {
+    mpCloseGameListener();
+    closeModal();
+    mp.inviteId = null;
+    mpRenderHome();
+  }
+
+  function mpCpuSummary() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return 'Nuova partita';
+      const s = JSON.parse(raw);
+      if (!s || !Array.isArray(s.board)) return 'Nuova partita';
+      return (s.gameOver ? 'Conclusa · ' : 'In corso · ') + 'Tu ' + (s.playerScore || 0) + ' – CPU ' + (s.cpuScore || 0);
+    } catch (e) { return 'Nuova partita'; }
+  }
+
+  function mpGameRow(id, g) {
+    const slot = g.players.indexOf(mp.uid);
+    const opp = 1 - slot;
+    const moves = g.moves || [];
+    const last = moves[moves.length - 1];
+    let title, sub, badge = '', cls = '';
+    if (g.status === 'waiting') {
+      title = 'In attesa di uno sfidante';
+      sub = 'Codice ' + (g.code || '') + ' · tocca per rivedere l\'invito';
+      badge = 'Invito'; cls = 'wait';
+    } else {
+      title = 'con ' + esc(g.names[opp] || 'Avversario');
+      sub = 'Tu ' + g.scores[slot] + ' – ' + g.scores[opp];
+      if (last) sub += ' · ' + esc(mpMoveText(g, last, slot)) + ' · ' + mpAgo(last.t);
+      if (g.status === 'finished') {
+        badge = g.winnerUid === mp.uid ? 'Vinta' : (g.winnerUid ? 'Persa' : 'Pari'); cls = 'done';
+        if (g.rematchGameId) sub += ' · rivincita creata';
+      } else if (g.turnUid === mp.uid) { badge = 'Tocca a te'; }
+      else { badge = 'Tocca a ' + esc(g.names[opp] || 'lui/lei'); cls = 'wait'; }
+    }
+    return '<div class="mp-row" data-act="open" data-id="' + esc(id) + '"><div style="min-width:0;flex:1;"><div class="who">' + title +
+      '</div><div class="sub">' + sub + '</div></div><div class="mp-badge ' + cls + '">' + badge + '</div></div>';
+  }
+
+  function mpRenderHome() {
+    const mine = [], theirs = [], waiting = [], done = [];
+    for (const [id, g] of Object.entries(mp.games)) {
+      if (g.status === 'waiting') waiting.push([id, g]);
+      else if (g.status === 'finished') done.push([id, g]);
+      else if (g.turnUid === mp.uid) mine.push([id, g]);
+      else theirs.push([id, g]);
+    }
+    const byRecent = (a, b) => (b[1].updatedMs || 0) - (a[1].updatedMs || 0);
+    [mine, theirs, waiting, done].forEach(l => l.sort(byRecent));
+    const section = (title, list) => list.length
+      ? '<div class="mp-section-title">' + title + '</div>' + list.map(([id, g]) => mpGameRow(id, g)).join('') : '';
+
+    let body = '';
+    if (mp.offline || !mp.uid) {
+      body += '<div class="mp-error">Il multiplayer non è disponibile (sei offline?).</div>' +
+              '<button class="mp-btn" data-act="retry">Riprova</button>';
+    } else {
+      if (mp.listError) body += '<div class="mp-error">' + esc(mp.listError) + '</div>';
+      body += '<button class="mp-btn" data-act="new">➕ Nuova partita online</button>' +
+              '<button class="mp-btn ghost" data-act="join">🔗 Ho un codice invito</button>';
+      const any = mine.length + theirs.length + waiting.length + done.length;
+      if (!any && !mp.listError) body += '<div class="mp-note">Nessuna partita online per ora. Creane una e manda il link su WhatsApp!</div>';
+      body += section('Tocca a te', mine) + section('Tocca a loro', theirs) + section('In attesa di uno sfidante', waiting) +
+              section('Concluse', done.slice(0, 15));
+    }
+    body += '<div class="mp-section-title">Contro la CPU</div>' +
+      '<div class="mp-row" data-act="cpu"><div style="min-width:0;flex:1;"><div class="who">🤖 Partita contro la CPU</div><div class="sub">' +
+      esc(mpCpuSummary()) + '</div></div><div class="mp-badge">Gioca</div></div>';
+
+    mpShowScreen('home', mpTopHtml(mp.nick ? 'Ciao, ' + mp.nick : 'deipovery') + '<div class="mp-body">' + body + '</div>');
+  }
+
+  // Un solo gestore per tutti i pulsanti delle schermate (l'HTML viene rigenerato di continuo).
+  mpScreenEl.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]');
+    if (!el) return;
+    const act = el.dataset.act;
+    if (act === 'cpu') openCpuGame();
+    else if (act === 'open') mpOpenFromList(el.dataset.id);
+    else if (act === 'new') mpRun(mpCreateGame);
+    else if (act === 'join') mpShowJoinScreen();
+    else if (act === 'joinGo') { const v = document.getElementById('mpCodeInput').value; mpRun(() => mpJoinByCode(v)); }
+    else if (act === 'home') mpShowHome();
+    else if (act === 'nick') { const v = document.getElementById('mpNickInput').value; mpRun(() => mpSubmitNick(v)); }
+    else if (act === 'retry') mpStart();
+    else if (act === 'wa') {
+      const text = 'Ti sfido a Scrabble! Apri il link per giocare: ' + el.dataset.link;
+      window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+    } else if (act === 'share') {
+      const text = 'Ti sfido a Scrabble! Apri il link per giocare: ' + el.dataset.link;
+      if (navigator.share) navigator.share({ text }).catch(() => {});
+      else showNotification('Condivisione non supportata: usa "Copia il link".', 2500);
+    } else if (act === 'copy') {
+      const link = el.dataset.link;
+      const done = () => showNotification('Link copiato!', 1500);
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done).catch(() => showNotification('Copia non riuscita: seleziona il link a mano.', 2500));
+      else showNotification('Seleziona il link a mano per copiarlo.', 2500);
+    }
+  });
+  mpScreenEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    if (e.target.id === 'mpNickInput') { const v = e.target.value; mpRun(() => mpSubmitNick(v)); }
+    else if (e.target.id === 'mpCodeInput') { const v = e.target.value; mpRun(() => mpJoinByCode(v)); }
+  });
+
+  function mpOpenFromList(id) {
+    const g = mp.games[id];
+    if (!g) return;
+    if (g.status === 'waiting') mpShowInvite(id, g.code || '');
+    else mpOpenGame(id);
+  }
+
+  // ---------- creazione e accoppiamento ----------
+  function mpNewGameData(players, names, status, startUid, code) {
+    const bagArr = createBag();
+    const r0 = [], r1 = [];
+    while (r0.length < 7 && bagArr.length) r0.push(bagArr.pop());
+    while (r1.length < 7 && bagArr.length) r1.push(bagArr.pop());
+    const now = Date.now();
+    return {
+      players, names, status, code: code || null,
+      board: '.'.repeat(BOARD_SIZE * BOARD_SIZE),
+      racks: [r0.join(''), r1.join('')],
+      bag: bagArr.join(''),
+      scores: [0, 0],
+      startUid, turnUid: startUid,
+      firstMoveDone: false, scorelessTurns: 0,
+      moves: [],
+      version: status === 'active' ? 1 : 0,
+      createdMs: now, updatedMs: now,
+      winnerUid: null, endReason: null, penalties: [0, 0],
+      rematchGameId: null, rematchSeen: {}
+    };
+  }
+
+  async function mpCreateGame() {
+    if (!navigator.onLine) { showNotification(mpErrText(mpErr('offline')), 3000); return; }
+    const FB = mp.FB;
+    try {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const code = mpRandomCode();
+        const gameRef = FB.doc(FB.collection(mp.db, 'games'));
+        const batch = FB.writeBatch(mp.db);
+        batch.set(gameRef, mpNewGameData([mp.uid], [mp.nick, ''], 'waiting', mp.uid, code));
+        // Se il codice esiste già, questo "set" diventa un update e le regole lo rifiutano: si riprova con un altro.
+        batch.set(FB.doc(mp.db, 'invites', code), { gameId: gameRef.id, creatorUid: mp.uid, creatorName: mp.nick, createdMs: Date.now() });
+        try {
+          await batch.commit();
+          mpShowInvite(gameRef.id, code);
+          return;
+        } catch (err) {
+          if (err && err.code === 'permission-denied' && attempt < 4) continue;
+          throw err;
+        }
+      }
+    } catch (err) {
+      showNotification(mpErrText(err), 3500);
+    }
+  }
+
+  async function mpJoinByCode(rawCode) {
+    const code = String(rawCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length < 4) { showNotification('Codice non valido.', 2000); return; }
+    if (!navigator.onLine) { showNotification(mpErrText(mpErr('offline')), 3000); return; }
+    const FB = mp.FB;
+    try {
+      const inv = await FB.getDoc(FB.doc(mp.db, 'invites', code));
+      if (!inv.exists()) { showNotification('Invito non trovato: controlla il codice.', 3000); return; }
+      const gameId = inv.data().gameId;
+      const ref = FB.doc(mp.db, 'games', gameId);
+      const res = await FB.runTransaction(mp.db, async (tx) => {
+        const s = await tx.get(ref);
+        if (!s.exists()) return { error: 'Partita non trovata.' };
+        const d = s.data();
+        if (d.players.includes(mp.uid)) return { id: gameId };          // già dentro (es. il link è il tuo)
+        if (d.status !== 'waiting' || d.players.length >= 2) return { error: 'Questa partita ha già due giocatori.' };
+        tx.update(ref, {
+          players: [d.players[0], mp.uid],
+          names: [d.names[0], mp.nick],
+          status: 'active',
+          version: d.version + 1,
+          updatedMs: Date.now()
+        });
+        return { id: gameId };
+      });
+      if (res.error) { showNotification(res.error, 3500); return; }
+      mpOpenGame(res.id);
+    } catch (err) {
+      showNotification(mpErrText(err), 3500);
+    }
+  }
+
+  // ---------- partita aperta ----------
+  function mpCloseGameListener() {
+    if (mp.unsubGame) { try { mp.unsubGame(); } catch (e) { /* ignora */ } mp.unsubGame = null; }
+  }
+
+  function openCpuGame() {
+    mpCloseGameListener();
+    closeModal();
+    mpHideScreen();
+    gameMode = 'cpu';
+    mp.gameId = null; mp.game = null; mp.appliedVersion = -1;
+    isCpuThinking = false;
+    mpSetCpuUi();
+    if (!loadSavedGame()) newGame();
+  }
+
+  function mpSetCpuUi() {
+    playerNameEl.textContent = 'Tu';
+    cpuNameEl.textContent = 'CPU';
+    cpuAvatarEl.textContent = '🤖';
+    playBtn.textContent = 'Invia';
+  }
+
+  function mpGoHome() {
+    if (swapMode) exitSwapMode();
+    mpShowHome();
+  }
+
+  function mpOpenGame(id) {
+    mpCloseGameListener();
+    closeModal();
+    gameMode = 'mp';
+    mp.gameId = id; mp.game = null; mp.appliedVersion = -1; mp.rematchPrompted = false;
+    mpShowScreen('loading', '<div class="mp-body"><div class="mp-note" style="margin-top:40vh;">Carico la partita…</div></div>');
+    mp.unsubGame = mp.FB.onSnapshot(mp.FB.doc(mp.db, 'games', id), mpOnGameSnap, (err) => {
+      console.warn('Partita:', err);
+      mpCloseGameListener();
+      showNotification(mpErrText(err), 3500);
+      mpShowHome();
+    });
+  }
+
+  function mpOnGameSnap(snap) {
+    if (!snap.exists()) { mpCloseGameListener(); showNotification('Partita non trovata.', 2500); mpShowHome(); return; }
+    const d = snap.data();
+    if (!d.players.includes(mp.uid)) { mpCloseGameListener(); showNotification('Non fai parte di questa partita.', 2500); mpShowHome(); return; }
+    if (d.status === 'waiting') { mpCloseGameListener(); mpShowInvite(snap.id, d.code || ''); return; }
+    if (d.version < mp.appliedVersion) return;            // copia vecchia in cache: la ignoro
+    mp.game = d;
+    if (d.version !== mp.appliedVersion) mpApplyState(d);
+    else if (gameOver) syncUI();                          // cambiato solo qualcosa come rematchGameId
+  }
+
+  // Riempie le variabili globali del gioco a partire dal documento remoto.
+  function mpApplyState(d) {
+    const firstApply = mp.appliedVersion < 0;
+    if (swapMode) exitSwapMode();
+    if (modalOverlay.style.display !== 'none') closeModal();
+
+    const slot = d.players.indexOf(mp.uid), opp = 1 - slot;
+    mp.game = d; mp.slot = slot; mp.oppName = d.names[opp] || 'Avversario';
+    mp.appliedVersion = d.version;
+
+    board = mpUnflatBoard(d.board);
+    playerRack = Array.from(d.racks[slot]);
+    cpuRack = Array.from(d.racks[opp]);      // dell'avversario: la UI ne mostra solo il numero
+    bag = Array.from(d.bag);
+    playerScore = d.scores[slot];
+    cpuScore = d.scores[opp];
+    firstMoveDone = !!d.firstMoveDone;
+    gameOver = d.status === 'finished';
+    pendingTiles = [];                        // la bozza resta solo locale
+    swapSelection = [];
+    clearSelection();
+    isCpuThinking = false;
+    turn = gameOver ? 'none' : (d.turnUid === mp.uid ? 'player' : 'opponent');
+
+    const moves = d.moves || [];
+    const lastWord = [...moves].reverse().find(m => m.type === 'word');
+    lastMove = lastWord ? {
+      row: lastWord.tiles[lastWord.tiles.length - 1].r,
+      col: lastWord.tiles[lastWord.tiles.length - 1].c,
+      score: lastWord.score,
+      cells: lastWord.tiles.map(t => [t.r, t.c]),
+      mine: lastWord.by === slot
+    } : null;
+
+    playerNameEl.textContent = 'Tu';
+    cpuNameEl.textContent = mp.oppName;
+    cpuAvatarEl.textContent = '🙂';
+    playBtn.textContent = 'Invia';
+
+    updateBagDisplay();
+    updateScores();
+    renderBoard();
+    renderRack();
+    updateTurnIndicator();
+    if (mp.screen === 'loading') mpHideScreen();
+
+    if (gameOver) {
+      mpShowResult(d);
+    } else {
+      syncUI();
+      const last = moves[moves.length - 1];
+      if (last && last.by !== slot) {
+        showNotification(mpMoveText(d, last, slot) + (firstApply ? ' · ' + mpAgo(last.t) : ''), 3500);
+      }
+    }
+  }
+
+  function mpMoveText(g, mv, slot) {
+    const who = mv.by === slot ? 'Tu' : (g.names[mv.by] || 'Avversario');
+    if (mv.type === 'word') return who + ': ' + (mv.words || []).join(', ') + ' · +' + mv.score;
+    if (mv.type === 'pass') return who + ': passa';
+    if (mv.type === 'swap') return who + ': cambia ' + mv.count + (mv.count === 1 ? ' tessera' : ' tessere');
+    if (mv.type === 'resign') return who + ': si arrende';
+    return '';
+  }
+
+  function mpYourTurnText() {
+    const g = mp.game, moves = (g && g.moves) || [];
+    const last = moves[moves.length - 1];
+    return last ? mpMoveText(g, last, mp.slot) + ' · tocca a te' : 'Tocca a te: inizia la partita!';
+  }
+
+  function mpWaitingText() {
+    const g = mp.game, moves = (g && g.moves) || [];
+    const last = moves[moves.length - 1];
+    return last ? mpMoveText(g, last, mp.slot) + ' · tocca a ' + mp.oppName : 'Tocca a ' + mp.oppName;
+  }
+
+  function mpFinishedButton() {
+    playBtn.textContent = (mp.game && mp.game.rematchGameId) ? 'Apri rivincita' : 'Rivincita';
+    playBtn.disabled = false;
+  }
+
+  function mpShowResult(d) {
+    const slot = mp.slot, opp = 1 - slot;
+    let outcome;
+    if (d.winnerUid === mp.uid) outcome = 'Hai vinto! 🎉';
+    else if (d.winnerUid) outcome = mp.oppName + ' vince.';
+    else outcome = 'Pareggio.';
+    headerMessageEl.textContent = d.scores[slot] + ' – ' + d.scores[opp] + ' · ' + outcome;
+    updateTurnIndicator();
+    syncUI();
+    if (!mp.rematchPrompted && !(d.rematchSeen && d.rematchSeen[mp.uid])) {
+      mp.rematchPrompted = true;
+      mpMarkRematchSeen();
+      mpOpenRematchPopup(d, outcome);
+    }
+  }
+
+  function mpMarkRematchSeen() {
+    try {
+      mp.FB.updateDoc(mp.FB.doc(mp.db, 'games', mp.gameId), { ['rematchSeen.' + mp.uid]: true }).catch(() => {});
+    } catch (e) { /* ignora */ }
+  }
+
+  function mpOpenRematchPopup(d, outcome) {
+    const slot = mp.slot, opp = 1 - slot;
+    const reasons = { empty: 'Tessere finite.', passes: 'Troppi turni senza punti.', resign: 'Resa.' };
+    let extra = reasons[d.endReason] || '';
+    if (d.endReason !== 'resign' && d.penalties && (d.penalties[0] || d.penalties[1])) {
+      extra += ' Penalità tessere rimaste: tu −' + d.penalties[slot] + ', ' + esc(mp.oppName) + ' −' + d.penalties[opp] + '.';
+    }
+    openModal(`
+      <div class="modal-header">Rivincita?</div>
+      <div class="howto-body">
+        <b>Tu ${d.scores[slot]} – ${d.scores[opp]} ${esc(mp.oppName)}</b><br>${esc(outcome)}<br>${extra}<br><br>
+        Se accetti si crea subito una nuova partita e inizia chi ha perso.
+      </div>
+      <div class="mp-btn-row">
+        <button class="mp-btn ghost" id="rmCancel">Annulla</button>
+        <button class="mp-btn" id="rmOk">OK</button>
+      </div>`);
+    modalSheet.querySelector('#rmCancel').addEventListener('click', closeModal);
+    modalSheet.querySelector('#rmOk').addEventListener('click', () => { closeModal(); mpRun(mpRematch); });
+  }
+
+  // ---------- mosse (ogni mossa è una transazione con controllo di versione) ----------
+  function mpComputeNext(d, slot, action) {
+    const opp = 1 - slot;
+    const cells = d.board.split('');
+    const racks = d.racks.map(s => Array.from(s));
+    const bagArr = Array.from(d.bag);
+    const scores = d.scores.slice();
+    const moves = (d.moves || []).slice();
+    let scoreless = d.scorelessTurns || 0;
+    let firstDone = !!d.firstMoveDone;
+    const mv = { n: moves.length + 1, by: slot, type: action.type, t: Date.now() };
+    const draw = () => { while (racks[slot].length < 7 && bagArr.length) racks[slot].push(bagArr.pop()); };
+
+    if (action.type === 'word') {
+      for (const t of action.tiles) {
+        const idx = t.row * BOARD_SIZE + t.col;
+        if (cells[idx] !== '.') throw mpErr('stale');
+        const need = t.isBlank ? '★' : t.letter;
+        const ri = racks[slot].indexOf(need);
+        if (ri < 0) throw mpErr('stale');
+        racks[slot].splice(ri, 1);
+        cells[idx] = t.letter;
+      }
+      draw();
+      scores[slot] += action.score;
+      scoreless = 0;
+      firstDone = true;
+      mv.words = action.words;
+      mv.score = action.score;
+      mv.tiles = action.tiles.map(t => ({ r: t.row, c: t.col, l: t.letter }));
+    } else if (action.type === 'pass') {
+      scoreless++;
+    } else if (action.type === 'swap') {
+      const out = [];
+      for (const l of action.letters) {
+        const ri = racks[slot].indexOf(l);
+        if (ri < 0) throw mpErr('stale');
+        out.push(racks[slot].splice(ri, 1)[0]);
+      }
+      if (bagArr.length < out.length) throw mpErr('bag');
+      for (const l of out) bagArr.push(l);
+      shuffleArray(bagArr);
+      draw();
+      scoreless++;
+      mv.count = out.length;
+    }
+    moves.push(mv);
+
+    let status = 'active', endReason = null, winnerUid = null, turnUid = d.players[opp];
+    const penalties = [0, 0];
+    if (action.type === 'resign') { status = 'finished'; endReason = 'resign'; winnerUid = d.players[opp]; }
+    else if (action.type === 'word' && racks[slot].length === 0 && bagArr.length === 0) { status = 'finished'; endReason = 'empty'; }
+    else if (scoreless >= MP_PASS_LIMIT) { status = 'finished'; endReason = 'passes'; }
+
+    if (status === 'finished') {
+      turnUid = null;
+      if (endReason !== 'resign') {
+        // Penalità: ognuno perde il valore delle tessere che gli restano in mano.
+        for (let i = 0; i < 2; i++) {
+          penalties[i] = racks[i].reduce((sum, l) => sum + (LETTER_VALUES[l] || 0), 0);
+          scores[i] -= penalties[i];
+        }
+        winnerUid = scores[0] > scores[1] ? d.players[0] : (scores[1] > scores[0] ? d.players[1] : null);
+      }
+    }
+
+    return {
+      board: cells.join(''), racks: racks.map(r => r.join('')), bag: bagArr.join(''),
+      scores, scorelessTurns: scoreless, firstMoveDone: firstDone, moves,
+      version: d.version + 1, updatedMs: Date.now(),
+      status, turnUid, endReason, winnerUid, penalties
+    };
+  }
+
+  async function mpTxAction(action) {
+    if (!navigator.onLine) throw mpErr('offline');
+    const FB = mp.FB;
+    const ref = FB.doc(mp.db, 'games', mp.gameId);
+    const expected = mp.appliedVersion;
+    const run = FB.runTransaction(mp.db, async (tx) => {
+      const s = await tx.get(ref);
+      if (!s.exists()) throw mpErr('gone');
+      const d = s.data();
+      const slot = d.players.indexOf(mp.uid);
+      if (slot < 0) throw mpErr('gone');
+      if (d.status !== 'active') throw mpErr('notactive');
+      if (action.type !== 'resign') {
+        if (d.version !== expected) throw mpErr('stale');   // l'altra persona ha mosso mentre eri sulla vecchia versione
+        if (d.turnUid !== mp.uid) throw mpErr('notturn');
+      }
+      const upd = mpComputeNext(d, slot, action);
+      tx.update(ref, upd);
+      return Object.assign({}, d, upd);
+    });
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(mpErr('timeout')), 20000));
+    return Promise.race([run, timeout]);
+  }
+
+  // Durante l'invio riuso isCpuThinking come "occupato": blocca tocchi e drag.
+  async function mpSend(action, okMessage) {
+    isCpuThinking = true;
+    headerMessageEl.textContent = 'Invio…';
+    playBtn.disabled = true;
+    skipBtn.disabled = true;
+    try {
+      const nd = await mpTxAction(action);
+      // Il listener può aver già applicato questa versione prima che la transazione risponda: non applicarla due volte.
+      if (nd.version > mp.appliedVersion) mpApplyState(nd);
+      isCpuThinking = false;
+      if (okMessage) showNotification(okMessage, 2500);
+      return true;
+    } catch (err) {
+      isCpuThinking = false;
+      showNotification(mpErrText(err), 3500);
+      syncUI();
+      return false;
+    }
+  }
+
+  function mpSubmitWord(result) {
+    const tiles = pendingTiles.map(t => ({ row: t.row, col: t.col, letter: t.letter, isBlank: !!t.isBlank }));
+    return mpSend({ type: 'word', tiles, score: result.score, words: result.words },
+      '+' + result.score + ' punti! ' + result.words.join(', '));
+  }
+
+  function mpSubmitPass() {
+    return mpSend({ type: 'pass' }, 'Turno passato.');
+  }
+
+  async function mpSubmitSwap() {
+    const letters = swapSelection.map(i => playerRack[i]);
+    const ok = await mpSend({ type: 'swap', letters }, 'Hai cambiato ' + letters.length + ' tessere.');
+    if (!ok && swapMode) syncUI();
+  }
+
+  async function mpResign() {
+    if (!mp.game || mp.game.status !== 'active') return;
+    if (!confirm('Vuoi arrenderti? La partita finirà e vincerà ' + mp.oppName + '.')) return;
+    await mpSend({ type: 'resign' }, 'Ti sei arreso.');
+  }
+
+  // ---------- rivincita ----------
+  function mpRematchStarter(d) {
+    if (d.winnerUid) return d.players.find(u => u !== d.winnerUid);   // inizia chi ha perso
+    return d.players.find(u => u !== d.startUid);                     // pareggio: inizia chi non aveva iniziato
+  }
+
+  async function mpRematch() {
+    if (!mp.game || mp.game.status !== 'finished') return;
+    if (!navigator.onLine) { showNotification(mpErrText(mpErr('offline')), 3000); return; }
+    const FB = mp.FB;
+    const oldRef = FB.doc(mp.db, 'games', mp.gameId);
+    const newRef = FB.doc(FB.collection(mp.db, 'games'));
+    try {
+      const newId = await FB.runTransaction(mp.db, async (tx) => {
+        const s = await tx.get(oldRef);
+        if (!s.exists()) throw mpErr('gone');
+        const d = s.data();
+        if (d.status !== 'finished') throw mpErr('notactive');
+        if (d.rematchGameId) return d.rematchGameId;      // l'altra persona è arrivata prima: mi aggancio
+        const slot = d.players.indexOf(mp.uid);
+        const data = mpNewGameData([mp.uid, d.players[1 - slot]], [d.names[slot], d.names[1 - slot]], 'active', mpRematchStarter(d), null);
+        tx.set(newRef, data);
+        tx.update(oldRef, { rematchGameId: newRef.id });
+        return newRef.id;
+      });
+      mpOpenGame(newId);
+    } catch (err) {
+      showNotification(mpErrText(err), 3500);
+    }
+  }
+
+  // ---------- cronologia ----------
+  function mpOpenHistory() {
+    const g = mp.game;
+    if (!g) return;
+    const moves = (g.moves || []).slice().reverse();
+    const rows = moves.length ? moves.map(m =>
+      '<div class="mp-hist-row"><span class="n">#' + m.n + '</span><span class="tx">' + esc(mpMoveText(g, m, mp.slot)) +
+      '</span><span class="ago">' + mpAgo(m.t) + '</span></div>').join('')
+      : '<div class="howto-body">Nessuna mossa ancora.</div>';
+    let footer = '';
+    if (g.status === 'finished' && g.endReason !== 'resign' && g.penalties && (g.penalties[0] || g.penalties[1])) {
+      const s = mp.slot;
+      footer = '<div class="howto-body">Penalità tessere rimaste: tu −' + g.penalties[s] + ', ' + esc(mp.oppName) + ' −' + g.penalties[1 - s] + '.</div>';
+    }
+    openModal('<div class="modal-header">Cronologia mosse<div class="modal-x">✕</div></div>' + rows + footer);
+  }
+
   // ==================== EVENTI ====================
-  playBtn.addEventListener('click', () => { if (swapMode) confirmSwap(); else playerPlay(); });
+  playBtn.addEventListener('click', () => {
+    if (gameMode === 'mp' && gameOver) { mpRun(mpRematch); return; }
+    if (swapMode) confirmSwap(); else playerPlay();
+  });
+  backBtn.addEventListener('click', mpGoHome);
   skipBtn.addEventListener('click', () => { if (swapMode) exitSwapMode(); else skipTurn(); });
   recallBtn.addEventListener('click', recallAll);
   swapBtn.addEventListener('click', toggleSwapMode);
@@ -2506,7 +3468,7 @@
   confirmSwapBtn.addEventListener('click', confirmSwap);
   swapCloseBtn.addEventListener('click', exitSwapMode);
 
-  if (!loadSavedGame()) newGame();
+  mpBoot();   // senza configurazione Firebase parte direttamente la partita CPU, come prima
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
