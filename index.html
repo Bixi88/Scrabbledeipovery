@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Scrabble GO · CPU</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#4da84d">
+  <meta name="theme-color" content="#4e9f5f">
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -45,7 +45,7 @@
       max-height: 900px;
       display: flex;
       flex-direction: column;
-      background: linear-gradient(180deg, #c8e0c0 0%, #a8c8a0 100%);
+      background: #d9edf8;
       position: relative;
       box-shadow: 0 0 50px rgba(0,0,0,0.3);
       overflow: hidden;
@@ -56,134 +56,149 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2px 10px;
-      min-height: 26px;
-      background: linear-gradient(180deg, #6ecf6e 0%, #4da84d 100%);
-      color: white;
-      font-weight: 700;
-      font-size: 0.85rem;
+      padding: 12px 14px 8px;
+      background: #4e9f5f;
+      color: #fff;
       flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       z-index: 20;
     }
 
     .header-left {
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 8px;
       width: 100%;
     }
 
+    /* Pill "suggerimenti": lunga e incavata */
     .header-message {
-      background: rgba(0,0,0,0.2);
-      padding: 2px 14px;
-      border-radius: 20px;
-      font-size: 0.72rem;
+      flex: 1;
+      min-width: 0;
+      display: block;
+      height: 44px;
+      line-height: 44px;
+      padding: 0 18px;
+      text-align: center;
+      border-radius: 24px;
+      background: #3a7d49;
+      box-shadow: inset 0 3px 7px rgba(0,0,0,0.38), 0 1px 0 rgba(255,255,255,0.15);
+      font-size: 0.92rem;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 90%;
     }
 
     /* ========== PLAYER PANEL ========== */
     .player-panel {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(180deg, #8fe02a 0%, #6cb818 100%);
-      padding: calc(2px + var(--xp, 0px) * 0.25) 12px;
+      gap: 8px;
+      padding: 6px 14px 14px;
+      background: #4e9f5f;
       flex-shrink: 0;
       position: relative;
-      border-bottom: 2px solid #5a9e14;
+      z-index: 10;
+      box-shadow: 0 2px 0 rgba(0,0,0,0.12);
     }
 
+    /* Profilo "spento" (di default) */
     .player-side {
+      flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: row;
       align-items: center;
-      gap: 6px;
-      width: 40%;
+      gap: 12px;
+      padding: 0 14px;
+      min-height: calc(80px + var(--xp, 0px));
+      border-radius: 20px;
+      background: rgba(0,0,0,0.16);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.22);
+      color: #fff;
+      transition: background 0.25s, color 0.25s, box-shadow 0.25s;
     }
-    .player-side:last-child { flex-direction: row-reverse; }
+    .player-side.cpu-side { flex-direction: row-reverse; }
+
+    /* Profilo "acceso": chi sta giocando ora */
+    .player-side.active {
+      background: #f6e6e2;
+      color: #2f2f2f;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    }
+
     .player-info {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 0;
-      line-height: 1;
+      gap: 2px;
+      line-height: 1.05;
+      min-width: 0;
     }
-    .player-side:last-child .player-info { align-items: flex-end; }
+    .cpu-side .player-info { align-items: flex-end; }
 
     .avatar {
-      width: calc(34px + var(--xp, 0px) * 0.5);
-      height: calc(34px + var(--xp, 0px) * 0.5);
+      width: 54px;
+      height: 54px;
       flex-shrink: 0;
       border-radius: 50%;
-      border: 2px solid #fff;
+      border: 3px solid #fff;
       background: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      font-size: 1.5rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.25);
       overflow: hidden;
       position: relative;
+      transition: opacity 0.25s;
     }
+    .player-side:not(.active) .avatar { opacity: 0.8; }
 
-    .avatar.player-avatar {
-      background: linear-gradient(135deg, #4a90e2, #2c5aa0);
-      color: white;
-    }
-
-    .avatar.cpu-avatar {
-      background: linear-gradient(135deg, #f5a623, #d48a10);
-      color: white;
-    }
+    .avatar.player-avatar { background: linear-gradient(135deg, #4a90e2, #2c5aa0); color: #fff; }
+    .avatar.cpu-avatar { background: linear-gradient(135deg, #f5a623, #d48a10); color: #fff; }
 
     .player-name {
-      font-size: 0.6rem;
-      font-weight: 700;
-      color: #1a4a1a;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: inherit;
+      opacity: 0.92;
     }
 
     .player-score {
-      font-size: 1.5rem;
-      font-weight: 900;
-      color: #fff;
-      text-shadow: 2px 2px 0 rgba(0,0,0,0.15);
-      line-height: 1;
+      font-size: 2rem;
+      font-weight: 600;
+      color: inherit;
+      line-height: 1.1;
     }
 
-    .center-turn-indicator {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 40% 35%, #e8f5e0, #a8d080);
-      border: 2px solid #fff;
+    /* ========== STAGE: titolo + tabellone su fondo azzurro ========== */
+    .stage {
+      flex: 1;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25), inset 0 2px 4px rgba(255,255,255,0.5);
-      position: relative;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+      background: #d9edf8;
+    }
+
+    .title-area {
       flex-shrink: 0;
+      text-align: center;
+      padding: calc(16px + var(--xt, 0px)) 0 8px;
+      line-height: 1;
+      white-space: nowrap;
+      color: #8fc6ea;
     }
-
-    .turn-letter {
-      font-size: 1.05rem;
+    .title-main {
+      font-size: clamp(1.3rem, 6.6vw, 2.1rem);
       font-weight: 900;
-      color: #4a8a2a;
-      text-shadow: 1px 1px 0 #fff;
-      transform: rotate(-15deg);
+      letter-spacing: 0.38em;
+      margin-right: -0.3em;
     }
-
-    .center-turn-indicator.active-cpu {
-      background: radial-gradient(circle at 40% 35%, #ffe0b2, #ffb74d);
-    }
-    .center-turn-indicator.active-cpu .turn-letter {
-      color: #b35c00;
+    .title-sub {
+      font-size: clamp(0.8rem, 3.9vw, 1.25rem);
+      font-weight: 700;
+      letter-spacing: 0.06em;
     }
 
     /* ========== BOARD ========== */
@@ -192,8 +207,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2px;
-      background: #b8d4b0;
+      padding: 2px 8px 6px;
+      background: transparent;
       min-height: 0;
       min-width: 0;
       position: relative;
@@ -201,10 +216,8 @@
     }
 
     .board-wrapper {
-      background: #d4e8cc;
+      background: transparent;
       padding: 4px;
-      border-radius: 6px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
       /* dimensioni esatte impostate da fitBoard() (JS) per avere sempre celle quadrate */
       width: 100%;
       aspect-ratio: 1/1;
@@ -219,7 +232,7 @@
       grid-template-columns: repeat(15, 1fr);
       grid-template-rows: repeat(15, 1fr);
       gap: 2px;
-      background: #fdfcf8;
+      background: transparent;
       width: 100%;
       height: 100%;
       border-radius: 5px;
@@ -228,7 +241,7 @@
 
     /* CELLA BASE - PIATTA, CON LEGGERO SQUIRCLE E STACCO BIANCO (come Scrabble GO) */
     .cell {
-      background: #f0ede4;
+      background: #e7e9f0;
       border-radius: 3px;
       display: flex;
       align-items: center;
@@ -251,10 +264,10 @@
     }
 
     /* Colori premium - PIATTI */
-    .cell.tw { background: #e91e63; color: #fff; }
-    .cell.dw { background: #ff7043; color: #fff; }
-    .cell.tl { background: #1e88e5; color: #fff; }
-    .cell.dl { background: #81d4fa; color: #333; }
+    .cell.tw { background: #e5185f; color: #fff; }
+    .cell.dw { background: #f7896a; color: #fff; }
+    .cell.tl { background: #1b6ea6; color: #fff; }
+    .cell.dl { background: #80c8f0; color: #fff; }
     .cell.star { background: #e91e63; color: #fff; }
 
     /* Etichette premium ben visibili */
@@ -276,7 +289,7 @@
     }
 
     .cell.dl .premium-label {
-      color: #0d3a5c;
+      color: #fff;
     }
 
     /* Tessera piazzata */
@@ -442,213 +455,171 @@
     }
 
     /* ========== RACK ========== */
+    /* Le lettere "poggiano" sulla barra sotto: la sezione si sovrappone di 12px. */
     .rack-section {
-      background: linear-gradient(180deg, #d4aa7c 0%, #b88a5c 100%);
-      padding: calc(6px + var(--xr, 0px) * 0.5) 8px calc(6px + var(--xr, 0px) * 0.5);
+      background: transparent;
+      padding: calc(12px + var(--xr, 0px)) 8px 0;
+      margin-bottom: -12px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
       flex-shrink: 0;
-      border-top: 2px solid #a07040;
-      box-shadow: 0 -3px 10px rgba(0,0,0,0.2);
       position: relative;
+      z-index: 8;
     }
 
     .rack-slots {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: clamp(3px, 1.4vw, 6px);
+      gap: 5px;
       width: 100%;
-      max-width: 420px;
     }
 
     .rack-slot {
       width: 100%;
       aspect-ratio: 1/1;
-      background: #a87a4a;
-      border-radius: 8px;
+      background: transparent;
+      border-radius: 11px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
       transition: transform 0.15s;
       cursor: pointer;
-      border: 2px solid #8a6030;
       min-width: 0;
       min-height: 0;
     }
 
     .rack-slot.filled {
-      background: linear-gradient(180deg, #faf0d0 0%, #e8d8a8 100%);
-      border: 2px solid #d4c090;
+      background: linear-gradient(180deg, #f9edcc 0%, #f0dcaa 100%);
+      box-shadow: 0 3px 0 #d3bd85, 0 6px 10px rgba(0,0,0,0.25);
     }
 
     .rack-slot.selected-tile {
-      transform: translateY(-6px) scale(1.05);
-      box-shadow: 0 0 0 3px #ffeb3b, 0 6px 12px rgba(0,0,0,0.4);
+      transform: translateY(-8px) scale(1.04);
+      box-shadow: 0 0 0 3px #ffeb3b, 0 3px 0 #d3bd85, 0 10px 14px rgba(0,0,0,0.3);
       z-index: 15;
     }
 
     .rack-letter {
-      font-size: clamp(1.1rem, 6.5vw, 1.6rem);
-      font-weight: 900;
-      color: #2d3e1f;
-      text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+      font-size: clamp(1.5rem, 9vw, 2.4rem);
+      font-weight: 600;
+      color: #173a1b;
       line-height: 1;
     }
 
     .rack-points {
       position: absolute;
-      bottom: 3px;
-      right: 5px;
-      font-size: clamp(0.5rem, 2.2vw, 0.65rem);
-      font-weight: 700;
-      color: #6b5a2e;
+      bottom: 4px;
+      right: 6px;
+      font-size: clamp(0.55rem, 2.6vw, 0.75rem);
+      font-weight: 600;
+      color: #173a1b;
+      line-height: 1;
+    }
+
+    @supports (width: 1cqw) {
+      .rack-slot { container-type: inline-size; }
+      .rack-letter { font-size: 58cqw; }
+      .rack-points { font-size: 20cqw; bottom: 6cqw; right: 8cqw; }
     }
 
     /* ========== BOTTOM BAR ========== */
     .bottom-bar {
-      background: linear-gradient(180deg, #5a9e44 0%, #3d7a2e 100%);
-      padding: 5px 8px;
+      position: relative;
+      z-index: 1;
+      background: linear-gradient(180deg, #68b078 0%, #4f9c60 100%);
+      border-top: 2px solid rgba(255,255,255,0.28);
+      padding: 26px 14px calc(18px + env(safe-area-inset-bottom, 0px));
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 5px;
+      gap: 10px;
       flex-shrink: 0;
-      box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
     }
 
+    /* Icone: solo bianche, senza cerchio */
     .icon-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.15);
-      border: 2px solid rgba(255,255,255,0.4);
+      width: 44px;
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      font-size: 0.95rem;
+      color: #fff;
       cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
       flex-shrink: 0;
+      transition: opacity 0.1s, transform 0.1s;
     }
-
-    .icon-btn:active {
-      transform: scale(0.9);
-      background: rgba(255,255,255,0.3);
+    .icon-btn svg {
+      width: 30px;
+      height: 30px;
+      fill: none;
+      stroke: #fff;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
+    .icon-btn:active { transform: scale(0.88); opacity: 0.7; }
 
-    .main-action-btn {
-      flex: 1;
-      padding: 7px 10px;
-      border-radius: 30px;
-      background: linear-gradient(180deg, #ffd54f 0%, #ffb300 100%);
-      border: none;
-      font-weight: 900;
-      font-size: 0.9rem;
-      color: #4a3000;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.4);
-      box-shadow: 0 4px 0 #c88a00, 0 6px 12px rgba(0,0,0,0.3);
-      cursor: pointer;
-      transition: transform 0.08s, box-shadow 0.08s;
-      letter-spacing: 1px;
-    }
-
-    .main-action-btn:active {
-      transform: translateY(4px);
-      box-shadow: 0 0px 0 #c88a00, 0 2px 4px rgba(0,0,0,0.3);
-    }
-
-    .main-action-btn:disabled {
-      opacity: 0.5;
-      transform: translateY(2px);
-      box-shadow: 0 2px 0 #c88a00;
-      pointer-events: none;
-    }
-
-    .main-action-btn.secondary {
-      background: linear-gradient(180deg, #b0bec5 0%, #78909c 100%);
-      box-shadow: 0 4px 0 #546e7a, 0 6px 12px rgba(0,0,0,0.3);
-      color: #fff;
-      text-shadow: 0 1px 0 rgba(0,0,0,0.3);
-    }
-
-    .main-action-btn.secondary:active {
-      box-shadow: 0 0px 0 #546e7a;
-    }
-
-    .small-close {
-      width: 26px;
-      height: 26px;
-      font-size: 0.8rem;
+    /* X per uscire dal cambio tessere (nella pill in alto) */
+    .icon-btn.small-close {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
       background: rgba(0,0,0,0.25);
-      border: none;
-    }
-
-    .invia-btn {
-      flex: 1;
-      padding: 7px 10px;
-      border-radius: 30px;
-      background: transparent;
-      border: 2px solid rgba(255,255,255,0.8);
-      font-weight: 800;
       font-size: 0.95rem;
-      color: #fff;
-      cursor: pointer;
-      letter-spacing: 0.5px;
-      transition: opacity 0.1s, transform 0.08s;
     }
 
-    .invia-btn:active {
-      transform: scale(0.97);
-    }
-
-    .invia-btn:disabled {
-      opacity: 0.45;
-      pointer-events: none;
-    }
-
-    .scambia-btn {
+    .invia-btn, .scambia-btn {
       flex: 1;
-      padding: 7px 10px;
+      height: 46px;
       border-radius: 30px;
-      background: linear-gradient(180deg, #ffa726 0%, #f57c00 100%);
-      border: none;
-      font-weight: 800;
-      font-size: 0.9rem;
+      background: rgba(255,255,255,0.2);
+      border: 3px solid #fff;
+      font-weight: 500;
+      font-size: 1.2rem;
       color: #fff;
-      box-shadow: 0 4px 0 #c25c00, 0 6px 12px rgba(0,0,0,0.3);
       cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: opacity 0.1s, transform 0.08s, background 0.15s;
     }
+    .invia-btn:active, .scambia-btn:active { transform: scale(0.97); }
+    .invia-btn:disabled { opacity: 0.6; pointer-events: none; background: rgba(255,255,255,0.1); }
+    .scambia-btn { font-size: 1.05rem; }
 
-    .scambia-btn:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #c25c00;
-    }
-
-    .bag-pill {
+    /* Sacchetto: icona bianca con il numero dentro */
+    .bag-btn {
+      position: relative;
+      width: 46px;
+      height: 50px;
+      flex-shrink: 0;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 4px;
-      background: rgba(0,0,0,0.2);
-      border: 2px solid rgba(255,255,255,0.35);
-      border-radius: 20px;
-      padding: 4px 9px;
-      color: #fff;
+      justify-content: center;
+      transition: opacity 0.1s, transform 0.1s;
+    }
+    .bag-btn:active { transform: scale(0.92); opacity: 0.75; }
+    .bag-btn svg { width: 100%; height: 100%; fill: #fff; }
+    .bag-btn span {
+      position: absolute;
+      left: 0; right: 0;
+      top: 64%;
+      transform: translateY(-50%);
+      text-align: center;
       font-weight: 800;
       font-size: 0.8rem;
-      flex-shrink: 0;
-      cursor: pointer;
+      color: #4a9a5b;
+      line-height: 1;
     }
 
-    .bag-pill:active {
-      transform: scale(0.95);
-    }
-
-    .bag-pill-icon {
-      font-size: 0.95rem;
+    @media (max-height: 700px) {
+      .header { padding-top: 8px; }
+      .player-side { min-height: calc(64px + var(--xp, 0px)); }
+      .avatar { width: 46px; height: 46px; }
+      .player-score { font-size: 1.7rem; }
+      .title-area { padding: 8px 0 4px; }
+      .bottom-bar { padding-top: 22px; padding-bottom: 12px; }
     }
 
     /* ========== MODALI ========== */
@@ -672,7 +643,7 @@
     }
 
     .modal-header {
-      background: linear-gradient(180deg, #5a9e44 0%, #3d7a2e 100%);
+      background: #4e9f5f;
       color: #fff;
       font-weight: 800;
       font-size: 1.05rem;
@@ -835,7 +806,7 @@
     /* ========== NOTIFICATION ========== */
     .notification {
       position: absolute;
-      top: 80px;
+      top: 200px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(30, 60, 20, 0.92);
@@ -878,19 +849,15 @@
 
   <!-- PLAYER PANEL -->
   <div class="player-panel">
-    <div class="player-side">
+    <div class="player-side" id="playerCard">
       <div class="avatar player-avatar">👤</div>
       <div class="player-info">
-        <div class="player-name">TU</div>
+        <div class="player-name">Tu</div>
         <div class="player-score" id="playerScoreDisplay">0</div>
       </div>
     </div>
 
-    <div class="center-turn-indicator" id="turnIndicator">
-      <div class="turn-letter">S</div>
-    </div>
-
-    <div class="player-side">
+    <div class="player-side cpu-side" id="cpuCard">
       <div class="avatar cpu-avatar">🤖</div>
       <div class="player-info">
         <div class="player-name">CPU</div>
@@ -899,10 +866,13 @@
     </div>
   </div>
 
-  <!-- BOARD -->
-  <div class="board-section">
-    <div class="board-wrapper">
-      <div class="board" id="board"></div>
+  <!-- TITOLO + BOARD -->
+  <div class="stage">
+    <div class="title-area"><span class="title-main">SCRABBLE</span><span class="title-sub">deipovery</span></div>
+    <div class="board-section">
+      <div class="board-wrapper">
+        <div class="board" id="board"></div>
+      </div>
     </div>
   </div>
 
@@ -913,13 +883,20 @@
 
   <!-- BOTTOM BAR -->
   <div class="bottom-bar">
-    <div class="icon-btn" id="menuBtn" title="Menu">☰</div>
-    <div class="icon-btn" id="recallBtn" title="Ritira le lettere">↩️</div>
+    <div class="icon-btn" id="menuBtn" title="Menu">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </div>
+    <div class="icon-btn" id="recallBtn" title="Ritira le lettere">
+      <svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+    </div>
     <button class="invia-btn" id="playBtn" disabled>Invia</button>
     <button class="scambia-btn" id="confirmSwapBtn" style="display:none;">Scambia &amp; Passa</button>
-    <div class="icon-btn" id="shuffleBtn" title="Mescola">🔀</div>
-    <div class="bag-pill" id="bagBtn" title="Sacchetto tessere">
-      <span class="bag-pill-icon">💰</span><span id="bottomBagCount">100</span>
+    <div class="icon-btn" id="shuffleBtn" title="Mescola">
+      <svg viewBox="0 0 24 24"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></svg>
+    </div>
+    <div class="bag-btn" id="bagBtn" title="Sacchetto tessere">
+      <svg viewBox="0 0 48 52"><path d="M15 3 L20 8 L24 3 L28 8 L33 3 L30 14 H18 Z"/><path d="M18 15 H30 C41 23 45 31 45 38 C45 46 37 51 24 51 C11 51 3 46 3 38 C3 31 7 23 18 15 Z"/></svg>
+      <span id="bottomBagCount">100</span>
     </div>
     <!-- elementi mantenuti per compatibilità funzionale, ora richiamabili dal menu Opzioni -->
     <button id="skipBtn" style="display:none;">PASSA</button>
@@ -969,16 +946,18 @@
     // lettere, senza deformare il tabellone. Il calcolo parte dallo spazio "base" (senza
     // gli extra già applicati) per non entrare in oscillazione.
     const secPad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-    const baseLeft = sec.clientHeight - secPad - size + fitBoard.xp + fitBoard.xr;
+    const baseLeft = sec.clientHeight - secPad - size + fitBoard.xp + fitBoard.xr + fitBoard.xt;
     const spare = Math.max(0, baseLeft - 8);
-    const xp = Math.min(Math.round(spare * 0.30), 24);
-    const xr = Math.min(Math.round(spare * 0.20), 20);
-    fitBoard.xp = xp; fitBoard.xr = xr;
+    const xp = Math.min(Math.round(spare * 0.25), 30);
+    const xt = Math.min(Math.round(spare * 0.25), 30);
+    const xr = Math.min(Math.round(spare * 0.20), 26);
+    fitBoard.xp = xp; fitBoard.xr = xr; fitBoard.xt = xt;
     document.documentElement.style.setProperty('--xp', xp + 'px');
     document.documentElement.style.setProperty('--xr', xr + 'px');
+    document.documentElement.style.setProperty('--xt', xt + 'px');
     setTimeout(() => { try { drawOverlays(); } catch (e) {} }, 30);
   }
-  fitBoard.xp = 0; fitBoard.xr = 0;
+  fitBoard.xp = 0; fitBoard.xr = 0; fitBoard.xt = 0;
   window.addEventListener('resize', fitBoard);
   window.addEventListener('orientationchange', () => setTimeout(fitBoard, 150));
   window.addEventListener('load', fitBoard);
@@ -1127,7 +1106,8 @@
   const cpuScoreEl = document.getElementById('cpuScoreDisplay');
   const headerMessageEl = document.getElementById('headerMessage');
   const notificationEl = document.getElementById('notification');
-  const turnIndicatorEl = document.getElementById('turnIndicator');
+  const playerCardEl = document.getElementById('playerCard');
+  const cpuCardEl = document.getElementById('cpuCard');
   const playBtn = document.getElementById('playBtn');
   const skipBtn = document.getElementById('skipBtn');
   const recallBtn = document.getElementById('recallBtn');
@@ -1350,19 +1330,20 @@
     }
   }
 
+  // Accende il profilo di chi sta giocando e spegne l'altro.
+  // A partita finita restano accesi il vincitore (o entrambi in caso di pareggio).
   function updateTurnIndicator() {
+    let playerOn = false, cpuOn = false;
     if (gameOver) {
-      turnIndicatorEl.classList.remove('active-cpu');
-      turnIndicatorEl.querySelector('.turn-letter').textContent = '🏁';
-      return;
+      playerOn = playerScore >= cpuScore;
+      cpuOn = cpuScore >= playerScore;
+    } else if (turn === 'player') {
+      playerOn = true;
+    } else if (turn === 'cpu') {
+      cpuOn = true;
     }
-    if (turn === 'player') {
-      turnIndicatorEl.classList.remove('active-cpu');
-      turnIndicatorEl.querySelector('.turn-letter').textContent = 'S';
-    } else {
-      turnIndicatorEl.classList.add('active-cpu');
-      turnIndicatorEl.querySelector('.turn-letter').textContent = '🤖';
-    }
+    playerCardEl.classList.toggle('active', playerOn);
+    cpuCardEl.classList.toggle('active', cpuOn);
   }
 
   // ==================== RENDER ====================
