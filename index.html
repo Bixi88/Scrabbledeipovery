@@ -298,19 +298,20 @@
     .cell.occupied {
       background: #f5e6b8;
       color: #1a1a1a;
-      font-weight: 900;
-      font-size: 0.85rem;
+      font-weight: 700;
+      font-size: calc(var(--cell, 24px) * 0.54);
+      padding: 0 calc(var(--cell, 24px) * 0.1) calc(var(--cell, 24px) * 0.14) 0;
       border: 1px solid #d4c090;
       z-index: 5;
     }
 
     .cell.occupied .tile-points {
       position: absolute;
-      bottom: 1px;
-      right: 2px;
-      font-size: 0.5rem;
-      font-weight: 700;
-      color: #5a4a20;
+      bottom: calc(var(--cell, 24px) * 0.05);
+      right: calc(var(--cell, 24px) * 0.08);
+      font-size: calc(var(--cell, 24px) * 0.26);
+      font-weight: 600;
+      color: #3d3413;
       line-height: 1;
     }
 
@@ -333,19 +334,20 @@
     .cell.pending {
       background: #fdf6d8;
       color: #1a1a1a;
-      font-weight: 900;
-      font-size: 0.85rem;
+      font-weight: 700;
+      font-size: calc(var(--cell, 24px) * 0.54);
+      padding: 0 calc(var(--cell, 24px) * 0.1) calc(var(--cell, 24px) * 0.14) 0;
       border: 1px solid #d4c090;
       z-index: 6;
     }
 
     .cell.pending .tile-points {
       position: absolute;
-      bottom: 1px;
-      right: 2px;
-      font-size: 0.5rem;
-      font-weight: 700;
-      color: #5a4a20;
+      bottom: calc(var(--cell, 24px) * 0.05);
+      right: calc(var(--cell, 24px) * 0.08);
+      font-size: calc(var(--cell, 24px) * 0.26);
+      font-weight: 600;
+      color: #3d3413;
       line-height: 1;
     }
 
@@ -941,6 +943,7 @@
     const gaps = 2 * 14;    // 14 gap da 2px tra 15 celle
     const cell = Math.max(8, Math.floor((avail - pad - gaps) / 15));
     const size = cell * 15 + gaps + pad;
+    document.documentElement.style.setProperty('--cell', cell + 'px');
     wrap.style.width = size + 'px';
     wrap.style.height = size + 'px';
 
