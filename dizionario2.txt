@@ -12,3 +12,5 @@ ala
 Va
 Bruco
 Pc
+Dop
+Put
