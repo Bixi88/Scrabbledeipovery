@@ -370,8 +370,8 @@
     .word-frame.invalid { border-color: #c62828; }
     .score-badge {
       position: absolute;
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       background: #2e7d32;
       border: 2px solid #fff;
       border-radius: 6px;
@@ -2049,13 +2049,15 @@
           f.style.width = (right - left) + 'px';
           f.style.height = (bottom - top) + 'px';
           overlay.appendChild(f);
-          if (i === 0) mainRect = { right, bottom };
+          if (i === 0) mainRect = { cells };
         });
         if (result.valid && mainRect) {
+          // Rombo verde appoggiato all'angolo della cornice, tutto fuori dalle lettere
+          const pos = badgeOutsideCorner(mainRect.cells, wr, 10);
           const b = document.createElement('div');
           b.className = 'score-badge';
-          b.style.left = (mainRect.right - 2) + 'px';
-          b.style.top = (mainRect.bottom - 2) + 'px';
+          b.style.left = pos.x + 'px';
+          b.style.top = pos.y + 'px';
           b.innerHTML = '<span>' + result.score + '</span>';
           overlay.appendChild(b);
         }
@@ -2063,15 +2065,45 @@
     }
 
     if (lastMove && board[lastMove.row][lastMove.col]) {
-      const rc = cellEl(lastMove.row, lastMove.col).getBoundingClientRect();
+      // Pallino dei punti dell'ultima parola: sull'angolo esterno della parola, mai sulle lettere
+      const cells = (lastMove.cells && lastMove.cells.length) ? lastMove.cells : [[lastMove.row, lastMove.col]];
+      const pos = badgeOutsideCorner(cells, wr, 8);
       const b = document.createElement('div');
       b.className = 'last-move-badge' + (lastMove.mine ? ' mine' : '');
-      b.style.left = (rc.left - wr.left + 3) + 'px';
-      b.style.top = (rc.top - wr.top + 3) + 'px';
+      b.style.left = pos.x + 'px';
+      b.style.top = pos.y + 'px';
       b.textContent = lastMove.score;
       overlay.appendChild(b);
     }
   }
+
+  // Calcola dove mettere un badge di punteggio attaccato all'angolo di una parola,
+  // ma verso l'esterno (fuori dalle tessere). Prova gli angoli in ordine
+  // (basso-destra, alto-destra, basso-sinistra, alto-sinistra) e sceglie il primo
+  // la cui casella diagonale esterna è libera; 'off' = quanto sporge in px.
+  function badgeOutsideCorner(cells, wr, off) {
+    const rs = cells.map(c => c[0]), cs = cells.map(c => c[1]);
+    const r0 = Math.min(...rs), r1 = Math.max(...rs);
+    const c0 = Math.min(...cs), c1 = Math.max(...cs);
+    const rect0 = boardEl.children[r0 * BOARD_SIZE + c0].getBoundingClientRect();
+    const rect1 = boardEl.children[r1 * BOARD_SIZE + c1].getBoundingClientRect();
+    const corners = [
+      { dr: 1,  dc: 1,  x: rect1.right, y: rect1.bottom },
+      { dr: -1, dc: 1,  x: rect1.right, y: rect0.top },
+      { dr: 1,  dc: -1, x: rect0.left,  y: rect1.bottom },
+      { dr: -1, dc: -1, x: rect0.left,  y: rect0.top }
+    ];
+    const free = (r, c) => r < 0 || c < 0 || r >= BOARD_SIZE || c >= BOARD_SIZE || !board[r][c];
+    let pick = corners[0];
+    for (const k of corners) {
+      const rr = (k.dr > 0 ? r1 : r0) + k.dr;
+      const cc = (k.dc > 0 ? c1 : c0) + k.dc;
+      const rEdge = (k.dr > 0 ? r1 : r0), cEdge = (k.dc > 0 ? c1 : c0);
+      if (free(rr, cc) && free(rr, cEdge) && free(rEdge, cc)) { pick = k; break; }
+    }
+    return { x: pick.x - wr.left + pick.dc * off, y: pick.y - wr.top + pick.dr * off };
+  }
+
   window.addEventListener('resize', () => setTimeout(drawOverlays, 50));
 
   function validateAndScoreMove(moveTiles) {
@@ -2277,7 +2309,7 @@
     if (move) {
       commitMove(move.tiles);
       const lastTile = move.tiles[move.tiles.length - 1];
-      lastMove = { row: lastTile.row, col: lastTile.col, score: move.score };
+      lastMove = { row: lastTile.row, col: lastTile.col, score: move.score, cells: move.tiles.map(t => [t.row, t.col]) };
       cpuScore += move.score;
       for (let t of move.tiles) {
         const idx = cpuRack.indexOf(t.letter);

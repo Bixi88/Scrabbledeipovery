@@ -3,7 +3,7 @@
 // ma dà sempre priorità alla rete: appena pubblichi un commit su GitHub, il primo
 // dispositivo online lo scarica subito (niente più bisogno di alzare a mano un
 // numero di versione o svuotare la cache).
-const CACHE_NAME = 'scrabbledeipovery-v4-network-first';
+const CACHE_NAME = 'scrabbledeipovery-v5-network-first';
 
 // File da salvare subito all'installazione. dizionario.txt/dizionario2.txt sono
 // opzionali: se non esistono ancora nel repo, il precache degli altri file riesce
@@ -16,6 +16,7 @@ const CORE_ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  './badge-96.png',
   './icon-maskable-192.png',
   './icon-maskable-512.png'
 ];
@@ -90,6 +91,8 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body || 'Tocca a te!',
     icon: './icon-192.png',
+    // Icona piccola nella barra di stato di Android (al posto della campanella): una "S" bianca
+    badge: './badge-96.png',
     tag: data.tag || 'scrabble',
     renotify: true,
     data: { gameId: data.gameId || null }
