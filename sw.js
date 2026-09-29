@@ -3,7 +3,7 @@
 // ma dà sempre priorità alla rete: appena pubblichi un commit su GitHub, il primo
 // dispositivo online lo scarica subito (niente più bisogno di alzare a mano un
 // numero di versione o svuotare la cache).
-const CACHE_NAME = 'scrabbledeipovery-v6-network-first';
+const CACHE_NAME = 'scrabbledeipovery-v7-network-first';
 
 // File da salvare subito all'installazione. dizionario.txt/dizionario2.txt sono
 // opzionali: se non esistono ancora nel repo, il precache degli altri file riesce
@@ -13,6 +13,7 @@ const CORE_ASSETS = [
   './index.html',
   './dizionario.txt',
   './dizionario2.txt',
+  './dizionariosbagliato.txt',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

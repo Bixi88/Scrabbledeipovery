@@ -1205,6 +1205,46 @@
   loadExternalDictionary('dizionario.txt');
   loadExternalDictionary('dizionario2.txt');
 
+  // ==================== DIZIONARIO "SBAGLIATO" (parole vietate) ====================
+  // "dizionariosbagliato.txt" (una parola per riga o separate da spazi; le righe che
+  // iniziano con # sono commenti) contiene le parole da NON accettare mai. Ha la
+  // PRIORITÀ su tutto: anche se una parola è in dizionario.txt, dizionario2.txt o nella
+  // lista di base, se è qui viene rifiutata. Serve per togliere parole strane senza
+  // doverle cancellare una per una dal dizionario grande. Vale per te, per l'avversario
+  // (ogni telefono lo scarica) e per la CPU, perché tutti usano la stessa validazione.
+  const BANNED_WORDS = new Set();
+
+  async function loadBannedDictionary(url) {
+    try {
+      let response = null;
+      try {
+        response = await fetch(url, { cache: 'no-cache' });
+        if (response && response.ok && 'caches' in window) {
+          const cache = await caches.open(DICTIONARY_CACHE_NAME);
+          cache.put(url, response.clone());
+        }
+      } catch (networkErr) {
+        if ('caches' in window) {
+          const cache = await caches.open(DICTIONARY_CACHE_NAME);
+          response = await cache.match(url);
+        }
+      }
+      if (!response || !response.ok) return;
+      const text = await response.text();
+      for (const line of text.split(/\r?\n/)) {
+        const clean = line.replace(/#.*$/, '');
+        for (const raw of clean.split(/\s+/)) {
+          const w = raw.trim().toLowerCase();
+          if (w) BANNED_WORDS.add(w);
+        }
+      }
+      if (BANNED_WORDS.size > 0) console.log(`Parole vietate caricate: ${BANNED_WORDS.size}.`);
+    } catch (err) {
+      console.warn(`Dizionario vietato "${url}" non caricato.`, err);
+    }
+  }
+  loadBannedDictionary('dizionariosbagliato.txt');
+
   const BOARD_SIZE = 15;
   const CENTER = 7;
 
@@ -2332,7 +2372,10 @@
 
     if (words.length === 0) return { valid: false, score: 0, words: [], error: 'Nessuna parola valida' };
 
-    const invalidWord = words.find(w => !ITALIAN_WORDS.has(w.toLowerCase()));
+    const invalidWord = words.find(w => {
+      const lw = w.toLowerCase();
+      return !ITALIAN_WORDS.has(lw) || BANNED_WORDS.has(lw);   // le parole vietate vincono sempre
+    });
     if (invalidWord) return { valid: false, score: 0, words: [], error: `"${invalidWord}" non è nel dizionario` };
 
     function scoreWord(word, startRow, startCol, horiz, simBoard, moveTiles) {
