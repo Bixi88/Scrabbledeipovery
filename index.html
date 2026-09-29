@@ -3262,6 +3262,7 @@
         <button class="mp-btn ghost" data-act="share" data-link="${esc(link)}">Condividi…</button>
         <button class="mp-btn ghost" data-act="copy" data-link="${esc(link)}">Copia il link</button>
         <button class="mp-btn ghost" data-act="home">Torna alle partite</button>
+        <button class="mp-btn ghost" data-act="del" data-id="${esc(gameId)}" style="color:#8a2c2c;">🗑 Annulla questo invito</button>
       </div>`);
   }
 
@@ -3302,8 +3303,8 @@
       } else if (g.turnUid === mp.uid) { badge = 'Tocca a te'; }
       else { badge = 'Tocca a ' + esc(g.names[opp] || 'lui/lei'); cls = 'wait'; }
     }
-    const delBtn = g.status === 'finished'
-      ? '<button class="mp-del" data-act="del" data-id="' + esc(id) + '" title="Elimina partita">✕</button>' : '';
+    const delBtn = (g.status === 'finished' || g.status === 'waiting')
+      ? '<button class="mp-del" data-act="del" data-id="' + esc(id) + '" title="' + (g.status === 'waiting' ? 'Annulla invito' : 'Elimina partita') + '">✕</button>' : '';
     return '<div class="mp-row" data-act="open" data-id="' + esc(id) + '"><div style="min-width:0;flex:1;"><div class="who">' + title +
       '</div><div class="sub">' + sub + '</div></div><div class="mp-badge ' + cls + '">' + badge + '</div>' + delBtn + '</div>';
   }
@@ -3354,7 +3355,8 @@
     else if (act === 'home') mpShowHome();
     else if (act === 'nick') { const v = document.getElementById('mpNickInput').value; mpRun(() => mpSubmitNick(v)); }
     else if (act === 'retry') mpStart();
-    else if (act === 'del') mpRun(() => mpDeleteGame(el.dataset.id));
+    else if (act === 'del') { e.stopPropagation(); mpRun(() => mpDeleteGame(el.dataset.id)); }
+    else if (act === 'closePopup') closeModal();
     else if (act === 'pushOn') mpRun(pushEnable);
     else if (act === 'pushOff') mpRun(pushDisable);
     else if (act === 'wa') {
@@ -3432,6 +3434,13 @@
     }
   }
 
+  // Popup mostrato quando il codice non esiste (mai esistito o invito annullato dal creatore).
+  function mpInvalidCodePopup() {
+    openModal('<div class="modal-header">Codice non valido<div class="modal-x">✕</div></div>' +
+      '<div class="mp-note" style="padding:16px;">Questo codice non esiste più: la partita è stata annullata oppure il codice è sbagliato. Chiedi un nuovo invito a chi ti ha sfidato.</div>' +
+      '<div class="mp-btn-row"><button class="mp-btn" data-act="closePopup">OK</button></div>');
+  }
+
   async function mpJoinByCode(rawCode) {
     const code = String(rawCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code.length < 4) { showNotification('Codice non valido.', 2000); return; }
@@ -3439,12 +3448,12 @@
     const FB = mp.FB;
     try {
       const inv = await FB.getDoc(FB.doc(mp.db, 'invites', code));
-      if (!inv.exists()) { showNotification('Invito non trovato: controlla il codice.', 3000); return; }
+      if (!inv.exists()) { mpInvalidCodePopup(); return; }
       const gameId = inv.data().gameId;
       const ref = FB.doc(mp.db, 'games', gameId);
       const res = await FB.runTransaction(mp.db, async (tx) => {
         const s = await tx.get(ref);
-        if (!s.exists()) return { error: 'Partita non trovata.' };
+        if (!s.exists()) return { invalid: true };
         const d = s.data();
         if (d.players.includes(mp.uid)) return { id: gameId, joined: false };   // già dentro (es. il link è il tuo)
         if (d.status !== 'waiting' || d.players.length >= 2) return { error: 'Questa partita ha già due giocatori.' };
@@ -3457,6 +3466,7 @@
         });
         return { id: gameId, joined: true };
       });
+      if (res.invalid) { mpInvalidCodePopup(); return; }
       if (res.error) { showNotification(res.error, 3500); return; }
       if (res.joined) mpNotifyOpponent(res.id, 'join');
       mpOpenGame(res.id);
@@ -3866,18 +3876,40 @@
     }
   }
 
-  // ---------- eliminare una partita conclusa ----------
-  // Una partita si può eliminare solo quando è finita (vinta, persa, pari o abbandonata):
-  // così in "Concluse" resta solo finché serve, non per sempre. Richiede che le regole
-  // di Firestore (firestore.rules) siano aggiornate e ripubblicate, perché di default
-  // cancellare un documento "games" non è permesso.
+  // ---------- eliminare una partita ----------
+  // - Conclusa (vinta, persa, pari o abbandonata): si elimina, così non resta per sempre in "Concluse".
+  // - In attesa di uno sfidante: si annulla l'invito. Si cancellano partita + codice, quindi chi
+  //   inserisce quel codice vede "Codice non valido". Se nel frattempo lo sfidante è entrato,
+  //   l'annullamento viene rifiutato (la transazione lo controlla).
+  // Richiede le regole Firestore aggiornate (firestore.rules) e ripubblicate.
   async function mpDeleteGame(id) {
     const g = mp.games[id];
-    if (!g || g.status !== 'finished') return;
-    if (!confirm('Eliminare questa partita conclusa? Non si può annullare.')) return;
+    if (!g || (g.status !== 'finished' && g.status !== 'waiting')) return;
+    const waiting = g.status === 'waiting';
+    const msg = waiting
+      ? 'Annullare questo invito? Il codice ' + (g.code || '') + ' non sarà più valido.'
+      : 'Eliminare questa partita conclusa? Non si può annullare.';
+    if (!confirm(msg)) return;
     if (!navigator.onLine) { showNotification(mpErrText(mpErr('offline')), 3000); return; }
+    const FB = mp.FB;
     try {
-      await mp.FB.deleteDoc(mp.FB.doc(mp.db, 'games', id));
+      if (waiting) {
+        const ref = FB.doc(mp.db, 'games', id);
+        const res = await FB.runTransaction(mp.db, async (tx) => {
+          const s = await tx.get(ref);
+          if (!s.exists()) return { ok: true };                       // già sparita
+          const d = s.data();
+          if (d.status !== 'waiting' || d.players.length !== 1) return { taken: true };
+          tx.delete(ref);
+          if (d.code) tx.delete(FB.doc(mp.db, 'invites', d.code));
+          return { ok: true };
+        });
+        if (res.taken) { showNotification('Nel frattempo è entrato uno sfidante: la partita è partita.', 3500); return; }
+        showNotification('Invito annullato.', 2000);
+        if (mp.screen === 'invite') mpShowHome();
+      } else {
+        await FB.deleteDoc(FB.doc(mp.db, 'games', id));
+      }
     } catch (err) {
       showNotification(mpErrText(err), 3500);
     }
