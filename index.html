@@ -985,7 +985,72 @@
     .last-move-badge.mine { background: #1f9a12; }
 
     ::-webkit-scrollbar { display: none; }
-  </style>
+  
+    /* ---- menu iniziale, avatar, animazioni ---- */
+    @keyframes mpFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @keyframes mpSheetUp { from { transform: translateY(36px); opacity: 0.7; } to { transform: none; opacity: 1; } }
+    @keyframes mpFade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes tilePop { 0% { transform: scale(0.6); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
+    .mp-screen.mp-anim .mp-body > * { animation: mpFadeUp 0.28s ease both; }
+    .mp-screen.mp-anim .mp-body > *:nth-child(2) { animation-delay: 0.04s; }
+    .mp-screen.mp-anim .mp-body > *:nth-child(3) { animation-delay: 0.08s; }
+    .mp-screen.mp-anim .mp-body > *:nth-child(4) { animation-delay: 0.12s; }
+    .mp-screen.mp-anim .mp-body > *:nth-child(5) { animation-delay: 0.16s; }
+    .mp-screen.mp-anim .mp-body > *:nth-child(n+6) { animation-delay: 0.2s; }
+    .modal-overlay { animation: mpFade 0.18s ease; }
+    .modal-sheet { animation: mpSheetUp 0.22s ease; }
+    .cell.pop { animation: tilePop 0.22s ease; }
+    .icon-btn, .bag-btn, .invia-btn, .scambia-btn, .rack-slot, .mp-row, .modal-option { transition: transform 0.12s, background 0.15s; }
+    .icon-btn:active, .bag-btn:active { transform: scale(0.9); }
+    .rack-slot:active { transform: scale(0.94); }
+    .mp-row:active { transform: scale(0.985); }
+    .modal-option:active { background: #eef3ec; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+    .mp-top { position: relative; }
+    .mp-menu-btn, .mp-me-btn {
+      position: absolute; top: 12px; width: 44px; height: 44px; border-radius: 50%; border: 0; padding: 0;
+      background: rgba(255,255,255,0.22); color: #fff; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; overflow: hidden; transition: transform 0.12s, background 0.15s;
+    }
+    .mp-menu-btn { left: 12px; }
+    .mp-me-btn { right: 12px; font-size: 1.35rem; border: 2px solid rgba(255,255,255,0.85); }
+    .mp-menu-btn svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2.4; stroke-linecap: round; }
+    .mp-menu-btn:active, .mp-me-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.38); }
+    .mp-av {
+      width: 40px; height: 40px; border-radius: 50%; background: #dfe9dc; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 1.15rem; overflow: hidden;
+    }
+    .mp-av.mini { width: 34px; height: 34px; font-size: 1rem; }
+    .mp-av-big { width: 132px; height: 132px; font-size: 3.4rem; box-shadow: 0 3px 10px rgba(0,0,0,0.2); border: 3px solid #fff; }
+    .avatar.has-img, .mp-me-btn.has-img, .mp-av.has-img {
+      background-size: cover; background-position: center; background-repeat: no-repeat; font-size: 0; color: transparent;
+    }
+    .mp-switch { width: 46px; height: 28px; border-radius: 14px; background: #c9d2c6; position: relative; flex-shrink: 0; transition: background 0.2s; }
+    .mp-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: transform 0.2s; }
+    .mp-switch.on { background: #4e9f5f; }
+    .mp-switch.on::after { transform: translateX(18px); }
+    .modal-option.disabled { opacity: 0.55; }
+    .mp-opt-sub { font-size: 0.75rem; color: #6b7b68; font-weight: 500; margin-top: 2px; }
+    .mp-chev { color: #8a9a86; font-size: 1.5rem; line-height: 1; }
+    .modal-header .modal-back {
+      position: absolute; left: 14px; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1.25rem; line-height: 1;
+    }
+    .mp-res { font-weight: 900; text-align: center; }
+    .mp-res.w { color: #2e7d32; } .mp-res.l { color: #c62828; } .mp-res.d { color: #8a9a86; }
+    .mp-hist-row .tx small { font-weight: 500; color: #8a9a86; }
+    .mp-hist-sum { padding: 10px 16px; font-size: 0.85rem; color: #3a5a3a; background: #f3f8f1; border-bottom: 1px solid #e3ebe0; }
+    .mp-av-panel { padding: 18px 16px 22px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .mp-av-panel .mp-btn, .crop-wrap .mp-btn { width: 100%; }
+    .crop-wrap { padding: 14px 16px 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .crop-stage { position: relative; width: 280px; height: 280px; overflow: hidden; background: #222; border-radius: 12px; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .crop-stage img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; pointer-events: none; will-change: transform; }
+    .crop-mask { position: absolute; left: 10px; top: 10px; width: 260px; height: 260px; border-radius: 50%; box-sizing: border-box; border: 2px solid rgba(255,255,255,0.9); box-shadow: 0 0 0 400px rgba(0,0,0,0.55); pointer-events: none; }
+    .crop-zoom { width: 100%; accent-color: #4e9f5f; }
+</style>
 </head>
 <body>
 <div class="app-container" id="app">
@@ -1294,6 +1359,22 @@
   let lastMoveBadgeKey = null;    // idem per il pallino dell'ultima mossa
   let flyLayerEl = null;          // livello sopra il tabellone per l'animazione dei punti
   let dragState = null;         // stato del trascinamento in corso (dal rack)
+  let popKey = null;            // "riga,colonna" della tessera appena piazzata (per l'animazione)
+  let mpMenuOpen = false;       // il menu iniziale è aperto (serve per aggiornarlo dopo le notifiche)
+
+  // ---------- vibrazione ----------
+  const HAPTIC_KEY = 'scrabbleHaptics';
+  function hapticsOn() { try { return localStorage.getItem(HAPTIC_KEY) !== '0'; } catch (e) { return true; } }
+  function setHaptics(on) { try { localStorage.setItem(HAPTIC_KEY, on ? '1' : '0'); } catch (e) { /* ignora */ } }
+  function haptic(pattern) {
+    if (!hapticsOn()) return;
+    try { if (navigator.vibrate) navigator.vibrate(pattern || 10); } catch (e) { /* ignora */ }
+  }
+  // Un piccolo "tic" su ogni tocco di pulsanti, righe, tessere e celle.
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t && t.closest && t.closest('button, .icon-btn, .bag-btn, .modal-option, .mp-row, .rack-slot, .cell, .modal-x, .modal-back, .mp-menu-btn, .mp-me-btn, [data-act], [data-m]')) haptic(8);
+  }, true);
   let boardDragState = null;    // stato del trascinamento di una tessera già piazzata (pending) sulla board
   let lastBoardDragEndAt = 0;   // timestamp per ignorare il "click" fantasma dopo un drag sulla board
   let dragGhostEl = null;
@@ -1353,6 +1434,7 @@
 
   // ==================== MODALI (Opzioni / Sacchetto / Come si gioca) ====================
   function closeModal() {
+    mpMenuOpen = false;
     modalOverlay.style.display = 'none';
     modalSheet.innerHTML = '';
   }
@@ -1510,6 +1592,7 @@
   }
 
   function showNotification(msg, duration = 2000) {
+    if (/\bnon\b|già|impossibile|manc|invalid|errore|riprova/i.test(String(msg))) haptic([35, 45, 35]);   // avvisi/errori
     notificationEl.textContent = msg;
     notificationEl.classList.add('show');
     clearTimeout(notificationEl._timer);
@@ -1622,6 +1705,7 @@
           // Lettera piazzata in questo turno, non ancora confermata
           cell.textContent = pending.letter;
           cell.classList.add('pending');
+          if (popKey === r + ',' + c) cell.classList.add('pop');
           const pts = LETTER_VALUES[pending.letter] || 0;
           const ptsSpan = document.createElement('span');
           ptsSpan.className = 'tile-points';
@@ -1643,6 +1727,7 @@
         boardEl.appendChild(cell);
       }
     }
+    popKey = null;
     drawOverlays();
   }
 
@@ -1731,6 +1816,7 @@
         if (rackIndex >= playerRack.length || playerRack[rackIndex] !== '★') return;
         playerRack.splice(rackIndex, 1);
         pendingTiles.push({ row, col, letter: chosen.toLowerCase(), isBlank: true });
+        popKey = row + ',' + col; haptic(12);
         clearSelection();
         renderRack();
         renderBoard();
@@ -1741,6 +1827,7 @@
 
     playerRack.splice(rackIndex, 1);
     pendingTiles.push({ row, col, letter, isBlank: false });
+    popKey = row + ',' + col; haptic(12);
     clearSelection();
     renderRack();
     renderBoard();
@@ -1965,6 +2052,7 @@
     const [t] = playerRack.splice(from, 1);
     playerRack.splice(to, 0, t);
     selectedTileIndex = -1;
+    haptic(10);
     renderRack();
   }
 
@@ -3053,10 +3141,10 @@
       case 'stale': case 'notturn': case 'notactive': return 'La partita è cambiata nel frattempo: controlla e riprova.';
       case 'gone': return 'Partita non trovata.';
       case 'bag': return 'Non ci sono abbastanza tessere nel sacchetto.';
-      case 'permission-denied': return 'Permesso negato: controlla le regole di Firestore.';
+      case 'permission-denied': return 'Questa operazione non è più possibile: la partita è cambiata o non esiste più.';
       case 'auth/operation-not-allowed':
       case 'auth/admin-restricted-operation': return 'Accesso anonimo non attivo nella console Firebase.';
-      default: return 'Errore: ' + ((e && e.message) || 'sconosciuto');
+      default: console.warn('Errore:', e); return 'Qualcosa non ha funzionato. Riprova tra poco.';
     }
   }
 
@@ -3144,7 +3232,7 @@
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') {
         showNotification(perm === 'denied' ? 'Notifiche bloccate: riattivale dalle impostazioni del browser.' : 'Permesso non concesso.', 3500);
-        mpRenderHome();
+        mpRefreshAfterPush();
         return;
       }
       const reg = await navigator.serviceWorker.ready;
@@ -3157,7 +3245,7 @@
       console.warn('Notifiche: attivazione fallita', err);
       showNotification('Non sono riuscito ad attivare le notifiche: ' + ((err && err.message) || 'errore'), 4000);
     }
-    mpRenderHome();
+    mpRefreshAfterPush();
   }
   async function pushDisable() {
     try {
@@ -3168,7 +3256,7 @@
     } catch (err) { console.warn('Notifiche: disattivazione', err); }
     mp.pushOn = false;
     showNotification('Notifiche disattivate.', 2000);
-    mpRenderHome();
+    mpRefreshAfterPush();
   }
   function pushHomeHtml() {
     if (!PUSH_ENABLED) return '';
@@ -3184,6 +3272,290 @@
     }
     return '<button class="mp-btn ghost" data-act="pushOn">🔔 Attiva le notifiche</button>';
   }
+  // ==================== MENU INIZIALE, CRONOLOGIA PARTITE, AVATAR ====================
+  const MP_AVATAR_KEY = 'scrabbleMyAvatar';
+  const MP_AVATAR_PENDING_KEY = 'scrabbleMyAvatarPending';
+  const MP_HIST_KEY = 'scrabbleMpGameHistory';
+  const mpAv = {};                                   // avatar degli altri: uid -> { d: dataURL|null, t: ms }
+  let mpMyAv = null;
+  try { mpMyAv = localStorage.getItem(MP_AVATAR_KEY) || null; } catch (e) { /* ignora */ }
+  const playerAvatarEl = document.querySelector('.player-avatar');
+
+  function mpAvatarOf(uid) {
+    if (!uid) return null;
+    if (uid === mp.uid) return mpMyAv;
+    const a = mpAv[uid];
+    return a && a.d ? a.d : null;
+  }
+
+  // Applica le foto a tutti gli elementi che hanno data-avuid (se non c'è la foto resta l'emoji).
+  function mpApplyAvatars() {
+    document.querySelectorAll('[data-avuid]').forEach(el => {
+      const d = mpAvatarOf(el.dataset.avuid);
+      if (d) { el.style.backgroundImage = 'url("' + d + '")'; el.classList.add('has-img'); }
+      else { el.style.backgroundImage = ''; el.classList.remove('has-img'); }
+    });
+  }
+
+  function setAvatarOn(el, uid) {
+    if (!el) return;
+    if (uid) { el.dataset.avuid = uid; mpEnsureAvatars([uid]); }
+    else { delete el.dataset.avuid; el.style.backgroundImage = ''; el.classList.remove('has-img'); }
+    mpApplyAvatars();
+  }
+  function mpSetGameAvatars(oppUid) {
+    setAvatarOn(playerAvatarEl, mp.uid || null);
+    setAvatarOn(cpuAvatarEl, oppUid || null);
+  }
+
+  // Scarica le foto degli avversari (una lettura a testa, poi restano in memoria 10 minuti).
+  async function mpEnsureAvatars(uids) {
+    if (!mp.FB || !mp.db) return;
+    const now = Date.now();
+    const todo = [...new Set(uids)].filter(u => u && u !== mp.uid && (!mpAv[u] || now - mpAv[u].t > 600000));
+    if (!todo.length) return;
+    await Promise.all(todo.map(async (u) => {
+      try {
+        const s = await mp.FB.getDoc(mp.FB.doc(mp.db, 'avatars', u));
+        mpAv[u] = { d: s.exists() ? (s.data().d || null) : null, t: Date.now() };
+      } catch (e) {
+        mpAv[u] = { d: (mpAv[u] && mpAv[u].d) || null, t: Date.now() - 540000 };   // riprova fra un minuto
+      }
+    }));
+    mpApplyAvatars();
+  }
+
+  // All'accesso: allinea la mia foto tra questo telefono e il server.
+  async function mpSyncMyAvatar() {
+    if (!mp.FB || !mp.db || !mp.uid) return;
+    const ref = mp.FB.doc(mp.db, 'avatars', mp.uid);
+    let pending = false;
+    try { pending = localStorage.getItem(MP_AVATAR_PENDING_KEY) === '1'; } catch (e) { /* ignora */ }
+    try {
+      if (pending && mpMyAv) {
+        await mp.FB.setDoc(ref, { d: mpMyAv, t: Date.now() });
+        try { localStorage.removeItem(MP_AVATAR_PENDING_KEY); } catch (e) { /* ignora */ }
+      } else {
+        const s = await mp.FB.getDoc(ref);
+        if (s.exists() && s.data().d) {
+          mpMyAv = s.data().d;
+          try { localStorage.setItem(MP_AVATAR_KEY, mpMyAv); } catch (e) { /* ignora */ }
+        } else if (mpMyAv) {
+          await mp.FB.setDoc(ref, { d: mpMyAv, t: Date.now() });
+        }
+      }
+    } catch (err) { console.warn('Avatar: sincronizzazione non riuscita', err); }
+    mpApplyAvatars();
+  }
+
+  async function mpSaveAvatar(dataUrl) {
+    mpMyAv = dataUrl;
+    try { localStorage.setItem(MP_AVATAR_KEY, dataUrl); localStorage.setItem(MP_AVATAR_PENDING_KEY, '1'); } catch (e) { /* ignora */ }
+    mpApplyAvatars();
+    if (mp.uid && mp.FB && mp.db && navigator.onLine) {
+      try {
+        await mp.FB.setDoc(mp.FB.doc(mp.db, 'avatars', mp.uid), { d: dataUrl, t: Date.now() });
+        try { localStorage.removeItem(MP_AVATAR_PENDING_KEY); } catch (e) { /* ignora */ }
+        showNotification('Avatar salvato!', 1800);
+      } catch (err) {
+        console.warn('Avatar: caricamento non riuscito', err);
+        showNotification('Foto salvata sul telefono. L\'avversario la vedrà appena riesco a caricarla.', 3500);
+      }
+    } else {
+      showNotification('Foto salvata sul telefono. La vedranno gli altri appena sei online.', 3500);
+    }
+  }
+
+  async function mpDeleteAvatar() {
+    if (!confirm('Eliminare la tua foto?')) return;
+    mpMyAv = null;
+    try { localStorage.removeItem(MP_AVATAR_KEY); localStorage.removeItem(MP_AVATAR_PENDING_KEY); } catch (e) { /* ignora */ }
+    mpApplyAvatars();
+    mpOpenAvatar();
+    if (mp.uid && mp.FB && mp.db) {
+      try { await mp.FB.deleteDoc(mp.FB.doc(mp.db, 'avatars', mp.uid)); }
+      catch (err) { console.warn('Avatar: eliminazione non riuscita', err); }
+    }
+  }
+
+  function mpOpenAvatar() {
+    mpMenuOpen = false;
+    openModal('<div class="modal-header"><div class="modal-back">‹</div>Avatar<div class="modal-x">✕</div></div>' +
+      '<div class="mp-av-panel">' +
+        '<div class="mp-av mp-av-big" data-avuid="' + esc(mp.uid || '') + '">👤</div>' +
+        '<div class="mp-note" style="text-align:center;">La tua foto compare accanto al nome nella partita e la vede anche il tuo avversario.</div>' +
+        '<button class="mp-btn" id="mpAvPick">📷 ' + (mpMyAv ? 'Cambia foto' : 'Carica una foto') + '</button>' +
+        (mpMyAv ? '<button class="mp-btn ghost" id="mpAvDel" style="color:#8a2c2c;">🗑 Elimina foto</button>' : '') +
+        '<input type="file" id="mpAvFile" accept="image/*" style="display:none;">' +
+      '</div>');
+    mpApplyAvatars();
+    modalSheet.querySelector('.modal-back').addEventListener('click', mpOpenMenu);
+    const file = document.getElementById('mpAvFile');
+    document.getElementById('mpAvPick').addEventListener('click', () => file.click());
+    file.addEventListener('change', () => { if (file.files && file.files[0]) mpOpenCropper(file.files[0]); });
+    const del = document.getElementById('mpAvDel');
+    if (del) del.addEventListener('click', mpDeleteAvatar);
+  }
+
+  // Ritaglio: si trascina/pizzica la foto per centrarla nel cerchio, poi OK.
+  function mpOpenCropper(fileObj) {
+    const url = URL.createObjectURL(fileObj);
+    const img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); showNotification('Non riesco a leggere questa immagine.', 2500); };
+    img.onload = () => {
+      const S = 280, D = 260, M = 10, OUT = 192;
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      if (!iw || !ih) { URL.revokeObjectURL(url); showNotification('Immagine non valida.', 2500); return; }
+      openModal('<div class="modal-header"><div class="modal-back">‹</div>Centra la foto<div class="modal-x">✕</div></div>' +
+        '<div class="crop-wrap">' +
+          '<div class="crop-stage" id="cropStage"><img id="cropImg" alt=""><div class="crop-mask"></div></div>' +
+          '<input type="range" id="cropZoom" class="crop-zoom" min="1" max="4" step="0.01" value="1">' +
+          '<div class="mp-note" style="text-align:center;">Trascina la foto per spostarla, pizzica o usa il cursore per ingrandire.</div>' +
+          '<div class="mp-btn-row" style="width:100%;padding:0;"><button class="mp-btn ghost" id="cropCancel">Annulla</button><button class="mp-btn" id="cropOk">OK</button></div>' +
+        '</div>');
+      const stage = document.getElementById('cropStage');
+      const im = document.getElementById('cropImg');
+      const slider = document.getElementById('cropZoom');
+      im.src = url; im.style.width = iw + 'px'; im.style.height = ih + 'px';
+      const minScale = D / Math.min(iw, ih);
+      let z = 1, scale = minScale, px = 0, py = 0;
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      function apply() {
+        px = clamp(px, M + D - iw * scale, M);        // la foto deve sempre coprire il cerchio
+        py = clamp(py, M + D - ih * scale, M);
+        im.style.transform = 'translate(' + px + 'px,' + py + 'px) scale(' + scale + ')';
+      }
+      function setZoom(nz, cx, cy) {
+        cx = cx == null ? S / 2 : cx; cy = cy == null ? S / 2 : cy;
+        z = clamp(nz, 1, 4);
+        const ns = minScale * z;
+        px = cx - (cx - px) * (ns / scale);
+        py = cy - (cy - py) * (ns / scale);
+        scale = ns; slider.value = z; apply();
+      }
+      px = S / 2 - iw * scale / 2; py = S / 2 - ih * scale / 2; apply();
+      slider.addEventListener('input', () => setZoom(parseFloat(slider.value)));
+      stage.addEventListener('wheel', (e) => { e.preventDefault(); setZoom(z * (e.deltaY < 0 ? 1.08 : 0.93)); }, { passive: false });
+      const ptrs = new Map(); let lastDist = 0;
+      stage.addEventListener('pointerdown', (e) => {
+        try { stage.setPointerCapture(e.pointerId); } catch (err) { /* ignora */ }
+        ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); lastDist = 0;
+      });
+      stage.addEventListener('pointermove', (e) => {
+        const p = ptrs.get(e.pointerId);
+        if (!p) return;
+        if (ptrs.size === 1) { px += e.clientX - p.x; py += e.clientY - p.y; apply(); }
+        p.x = e.clientX; p.y = e.clientY;
+        if (ptrs.size === 2) {
+          const [a, b] = [...ptrs.values()];
+          const dist = Math.hypot(a.x - b.x, a.y - b.y);
+          const r = stage.getBoundingClientRect();
+          if (lastDist) setZoom(z * dist / lastDist, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+          lastDist = dist;
+        }
+      });
+      const endPtr = (e) => { ptrs.delete(e.pointerId); lastDist = 0; };
+      stage.addEventListener('pointerup', endPtr);
+      stage.addEventListener('pointercancel', endPtr);
+      const back = () => { URL.revokeObjectURL(url); mpOpenAvatar(); };
+      modalSheet.querySelector('.modal-back').addEventListener('click', back);
+      document.getElementById('cropCancel').addEventListener('click', back);
+      document.getElementById('cropOk').addEventListener('click', () => {
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = OUT;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, OUT, OUT);
+        ctx.drawImage(img, (M - px) / scale, (M - py) / scale, D / scale, D / scale, 0, 0, OUT, OUT);
+        const dataUrl = cv.toDataURL('image/jpeg', 0.85);
+        URL.revokeObjectURL(url);
+        mpSaveAvatar(dataUrl);
+        mpOpenAvatar();
+      });
+    };
+    img.src = url;
+  }
+
+  // ---------- cronologia partite (resta anche se elimini la partita dall'elenco) ----------
+  function mpHistLoad() {
+    try { const a = JSON.parse(localStorage.getItem(MP_HIST_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+    catch (e) { return []; }
+  }
+  function mpHistRecord(games) {
+    let list = mpHistLoad(), changed = false;
+    for (const [id, g] of Object.entries(games)) {
+      if (g.status !== 'finished' || !g.players || g.players.length < 2 || !g.names || !g.scores) continue;
+      const slot = g.players.indexOf(mp.uid);
+      if (slot < 0) continue;
+      const opp = 1 - slot;
+      const entry = {
+        id, me: g.names[slot] || mp.nick || 'Tu', opp: g.names[opp] || 'Avversario',
+        s: [g.scores[slot] | 0, g.scores[opp] | 0],
+        r: g.winnerUid ? (g.winnerUid === mp.uid ? 'w' : 'l') : 'd',
+        end: g.endReason || '', t: g.updatedMs || Date.now()
+      };
+      const i = list.findIndex(x => x.id === id);
+      if (i < 0) { list.push(entry); changed = true; }
+      else if (JSON.stringify(list[i]) !== JSON.stringify(entry)) { list[i] = entry; changed = true; }
+    }
+    if (changed) {
+      list.sort((a, b) => b.t - a.t);
+      list = list.slice(0, 300);
+      try { localStorage.setItem(MP_HIST_KEY, JSON.stringify(list)); } catch (e) { /* ignora */ }
+    }
+  }
+  function mpOpenGamesHistory() {
+    mpMenuOpen = false;
+    const list = mpHistLoad().sort((a, b) => b.t - a.t);
+    const w = list.filter(x => x.r === 'w').length, l = list.filter(x => x.r === 'l').length, d = list.filter(x => x.r === 'd').length;
+    const rows = list.length ? '<div class="mp-hist-sum">Vinte ' + w + ' · Perse ' + l + ' · Pari ' + d + '</div>' + list.map(x =>
+      '<div class="mp-hist-row"><span class="n mp-res ' + x.r + '">' + (x.r === 'w' ? 'V' : x.r === 'l' ? 'P' : '=') + '</span>' +
+      '<span class="tx">' + esc(x.me) + ' ' + x.s[0] + ' – ' + x.s[1] + ' ' + esc(x.opp) + (x.end === 'resign' ? ' <small>· resa</small>' : '') + '</span>' +
+      '<span class="ago">' + mpAgo(x.t) + '</span></div>').join('')
+      : '<div class="howto-body">Nessuna partita conclusa ancora.</div>';
+    openModal('<div class="modal-header"><div class="modal-back">‹</div>Cronologia partite<div class="modal-x">✕</div></div>' + rows);
+    modalSheet.querySelector('.modal-back').addEventListener('click', mpOpenMenu);
+  }
+
+  // ---------- menu ----------
+  function mpSwitchRow(m, icon, bg, label, sub, on, disabled) {
+    return '<div class="modal-option' + (disabled ? ' disabled' : '') + '" data-m="' + m + '">' +
+      '<div class="modal-option-icon" style="background:' + bg + ';">' + icon + '</div>' +
+      '<div style="flex:1;min-width:0;">' + label + (sub ? '<div class="mp-opt-sub">' + sub + '</div>' : '') + '</div>' +
+      '<div class="mp-switch' + (on ? ' on' : '') + '"></div></div>';
+  }
+  function mpRefreshAfterPush() {
+    if (mp.screen === 'home') mpRenderHome();
+    if (mpMenuOpen) mpOpenMenu();
+  }
+  function mpOpenMenu() {
+    const canVib = !!navigator.vibrate;
+    let pushDis = false, pushSub = '';
+    if (!PUSH_ENABLED || !pushSupported()) { pushDis = true; pushSub = 'Non disponibili su questo dispositivo'; }
+    else if (pushIosNeedsInstall()) { pushDis = true; pushSub = 'Su iPhone: Condividi → Aggiungi alla schermata Home'; }
+    else if (Notification.permission === 'denied') { pushDis = true; pushSub = 'Bloccate: riattivale dalle impostazioni del browser'; }
+    openModal('<div class="modal-header">Menu<div class="modal-x">✕</div></div>' +
+      mpSwitchRow('vib', '📳', '#7e57c2', 'Vibrazione', canVib ? '' : 'Non supportata da questo dispositivo', canVib && hapticsOn(), !canVib) +
+      mpSwitchRow('push', '🔔', '#f5a623', 'Notifiche', pushSub, !!mp.pushOn && !pushDis, pushDis) +
+      '<div class="modal-option" data-m="hist"><div class="modal-option-icon" style="background:#26a69a;">📜</div><div style="flex:1;">Cronologia partite</div><div class="mp-chev">›</div></div>' +
+      '<div class="modal-option" data-m="avatar"><div class="modal-option-icon" style="background:#2196f3;">🙂</div><div style="flex:1;">Avatar</div><div class="mp-av mini" data-avuid="' + esc(mp.uid || '') + '">👤</div></div>');
+    mpMenuOpen = true;
+    mpApplyAvatars();
+    modalSheet.querySelectorAll('[data-m]').forEach(el => el.addEventListener('click', () => {
+      const m = el.dataset.m;
+      if (el.classList.contains('disabled')) {
+        showNotification(m === 'vib' ? 'La vibrazione non è supportata da questo dispositivo.' : (pushSub || 'Notifiche non disponibili.'), 3000);
+        return;
+      }
+      if (m === 'vib') { setHaptics(!hapticsOn()); if (hapticsOn()) haptic(25); mpOpenMenu(); }
+      else if (m === 'push') {
+        if (!mp.uid) { showNotification('Serve la connessione per cambiare le notifiche.', 2500); return; }
+        mpRun(mp.pushOn ? pushDisable : pushEnable);
+      }
+      else if (m === 'hist') mpOpenGamesHistory();
+      else if (m === 'avatar') mpOpenAvatar();
+    }));
+  }
+
   // Dopo una mossa: chiede al Worker di avvisare l'altro giocatore (senza aspettare la risposta).
   async function mpNotifyOpponent(gameId, kind) {
     if (!PUSH_ENABLED || !mp.auth || !mp.auth.currentUser) return;
@@ -3253,6 +3625,7 @@
     if (code) await mpRun(() => mpJoinByCode(code));
     else if (mp.pendingOpen) { const id = mp.pendingOpen; mp.pendingOpen = null; mpOpenGame(id); }
     pushRefresh();
+    mpSyncMyAvatar();
   }
 
   async function mpSubmitNick(raw) {
@@ -3281,6 +3654,7 @@
       const games = {};
       snap.forEach(d => { games[d.id] = d.data(); });
       mp.games = games;
+      mpHistRecord(games);
       if (mp.screen === 'home') mpRenderHome();
       if (mp.screen === 'invite' && mp.inviteId) {
         const g = mp.games[mp.inviteId];
@@ -3291,7 +3665,7 @@
       }
     }, err => {
       console.warn('Elenco partite:', err);
-      mp.listError = mpErrText(err);
+      mp.listError = (err && err.code === 'permission-denied') ? 'Non riesco a leggere le partite in questo momento. Riprova tra poco.' : mpErrText(err);
       if (mp.screen === 'home') mpRenderHome();
     });
   }
@@ -3300,7 +3674,9 @@
   const mpScreenEl = document.getElementById('mpScreen');
 
   function mpShowScreen(name, html) {
+    const changed = mp.screen !== name;
     mp.screen = name;
+    mpScreenEl.classList.toggle('mp-anim', changed);   // l'animazione parte solo quando cambia schermata
     mpScreenEl.innerHTML = html;
     mpScreenEl.style.display = 'flex';
     mpScreenEl.scrollTop = 0;
@@ -3312,8 +3688,12 @@
     mpScreenEl.innerHTML = '';
   }
 
-  function mpTopHtml(sub) {
-    return '<div class="mp-top"><div class="t1">SCRABBLE</div><div class="t2">' + esc(sub) + '</div></div>';
+  function mpTopHtml(sub, home) {
+    const menu = home
+      ? '<button class="mp-menu-btn" data-act="menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>' +
+        '<button class="mp-me-btn" data-act="avatar" aria-label="Avatar" data-avuid="' + esc(mp.uid || '') + '">👤</button>'
+      : '';
+    return '<div class="mp-top">' + menu + '<div class="t1">SCRABBLE</div><div class="t2">' + esc(sub) + '</div></div>';
   }
 
   function mpShowNickScreen(errMsg, value) {
@@ -3397,7 +3777,8 @@
     }
     const delBtn = (g.status === 'finished' || g.status === 'waiting')
       ? '<button class="mp-del" data-act="del" data-id="' + esc(id) + '" title="' + (g.status === 'waiting' ? 'Annulla invito' : 'Elimina partita') + '">✕</button>' : '';
-    return '<div class="mp-row" data-act="open" data-id="' + esc(id) + '"><div style="min-width:0;flex:1;"><div class="who">' + title +
+    const av = g.status === 'waiting' ? '' : '<span class="mp-av" data-avuid="' + esc(g.players[opp] || '') + '">🙂</span>';
+    return '<div class="mp-row" data-act="open" data-id="' + esc(id) + '">' + av + '<div style="min-width:0;flex:1;"><div class="who">' + title +
       '</div><div class="sub">' + sub + '</div></div><div class="mp-badge ' + cls + '">' + badge + '</div>' + delBtn + '</div>';
   }
 
@@ -3421,7 +3802,7 @@
     } else {
       if (mp.listError) body += '<div class="mp-error">' + esc(mp.listError) + '</div>';
       body += '<button class="mp-btn" data-act="new">➕ Nuova partita online</button>' +
-              '<button class="mp-btn ghost" data-act="join">🔗 Ho un codice invito</button>' + pushHomeHtml();
+              '<button class="mp-btn ghost" data-act="join">🔗 Ho un codice invito</button>';
       const any = mine.length + theirs.length + waiting.length + done.length;
       if (!any && !mp.listError) body += '<div class="mp-note">Nessuna partita online per ora. Creane una e manda il link su WhatsApp!</div>';
       body += section('Tocca a te', mine) + section('Tocca a loro', theirs) + section('In attesa di uno sfidante', waiting) +
@@ -3431,7 +3812,10 @@
       '<div class="mp-row" data-act="cpu"><div style="min-width:0;flex:1;"><div class="who">🤖 Partita contro la CPU</div><div class="sub">' +
       esc(mpCpuSummary()) + '</div></div><div class="mp-badge">Gioca</div></div>';
 
-    mpShowScreen('home', mpTopHtml(mp.nick ? 'Ciao, ' + mp.nick : 'deipovery') + '<div class="mp-body">' + body + '</div>');
+    mpShowScreen('home', mpTopHtml(mp.nick ? 'Ciao, ' + mp.nick : 'deipovery', true) + '<div class="mp-body">' + body + '</div>');
+    mpApplyAvatars();
+    mpEnsureAvatars(Object.values(mp.games).filter(g => g.players && g.players.length === 2)
+      .map(g => g.players[1 - g.players.indexOf(mp.uid)]));
   }
 
   // Un solo gestore per tutti i pulsanti delle schermate (l'HTML viene rigenerato di continuo).
@@ -3449,6 +3833,8 @@
     else if (act === 'retry') mpStart();
     else if (act === 'del') { e.stopPropagation(); mpRun(() => mpDeleteGame(el.dataset.id)); }
     else if (act === 'closePopup') closeModal();
+    else if (act === 'menu') mpOpenMenu();
+    else if (act === 'avatar') mpOpenAvatar();
     else if (act === 'pushOn') mpRun(pushEnable);
     else if (act === 'pushOff') mpRun(pushDisable);
     else if (act === 'wa') {
@@ -3548,7 +3934,7 @@
         if (!s.exists()) return { invalid: true };
         const d = s.data();
         if (d.players.includes(mp.uid)) return { id: gameId, joined: false };   // già dentro (es. il link è il tuo)
-        if (d.status !== 'waiting' || d.players.length >= 2) return { error: 'Questa partita ha già due giocatori.' };
+        if (d.status !== 'waiting' || d.players.length >= 2) return { error: 'Questa partita è già iniziata.' };
         tx.update(ref, {
           players: [d.players[0], mp.uid],
           names: [d.names[0], mp.nick],
@@ -3563,7 +3949,8 @@
       if (res.joined) mpNotifyOpponent(res.id, 'join');
       mpOpenGame(res.id);
     } catch (err) {
-      showNotification(mpErrText(err), 3500);
+      if (err && err.code === 'permission-denied') showNotification('Questa partita è già iniziata o è stata annullata.', 3500);
+      else showNotification(mpErrText(err), 3500);
     }
   }
 
@@ -3587,6 +3974,7 @@
     playerNameEl.textContent = 'Tu';
     cpuNameEl.textContent = 'CPU';
     cpuAvatarEl.textContent = '🤖';
+    mpSetGameAvatars(null);
     playBtn.textContent = 'Invia';
   }
 
@@ -3615,6 +4003,7 @@
     if (!d.players.includes(mp.uid)) { mpCloseGameListener(); showNotification('Non fai parte di questa partita.', 2500); mpShowHome(); return; }
     if (d.status === 'waiting') { mpCloseGameListener(); mpShowInvite(snap.id, d.code || ''); return; }
     if (d.version < mp.appliedVersion) return;            // copia vecchia in cache: la ignoro
+    if (mp.appliedVersion >= 0 && d.version > mp.appliedVersion && d.status === 'active' && d.turnUid === mp.uid) haptic([30, 60, 30]);   // ha mosso l'avversario
     mp.game = d;
     if (d.version !== mp.appliedVersion) mpApplyState(d);
     else if (gameOver) syncUI();                          // cambiato solo qualcosa come rematchGameId
@@ -3630,7 +4019,7 @@
     const oldRack = playerRack, oldPending = pendingTiles;
     let draftDropped = 0;
     const slot = d.players.indexOf(mp.uid), opp = 1 - slot;
-    mp.game = d; mp.slot = slot; mp.oppName = d.names[opp] || 'Avversario';
+    mp.game = d; mp.slot = slot; mp.oppName = d.names[opp] || 'Avversario'; mp.oppUid = d.players[opp];
     mp.appliedVersion = d.version;
 
     board = mpUnflatBoard(d.board);
@@ -3677,6 +4066,7 @@
     playerNameEl.textContent = 'Tu';
     cpuNameEl.textContent = mp.oppName;
     cpuAvatarEl.textContent = '🙂';
+    mpSetGameAvatars(mp.oppUid);
     playBtn.textContent = 'Invia';
 
     updateBagDisplay();
@@ -4003,7 +4393,9 @@
         await FB.deleteDoc(FB.doc(mp.db, 'games', id));
       }
     } catch (err) {
-      showNotification(mpErrText(err), 3500);
+      const c = err && err.code;
+      if (c === 'permission-denied' || c === 'not-found') showNotification('Questa partita è già stata eliminata.', 2500);
+      else showNotification(mpErrText(err), 3500);
     }
   }
 
@@ -4038,6 +4430,7 @@
     if (!canEditDraft() || swapMode) return;
     shuffleArray(playerRack);
     selectedTileIndex = -1;
+    haptic([10, 30, 10]);
     renderRack();
     showNotification('Rack mescolato!', 1000);
   });
