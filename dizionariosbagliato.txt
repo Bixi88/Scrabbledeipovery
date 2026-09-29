@@ -3,3 +3,6 @@
 # Le righe che iniziano con # sono commenti e vengono ignorate.
 # Esempio (togli il # per attivarla):
 # paroladasbagliata
+
+Rosu
+Tamas
