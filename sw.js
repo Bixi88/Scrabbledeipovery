@@ -3,7 +3,7 @@
 // ma dà sempre priorità alla rete: appena pubblichi un commit su GitHub, il primo
 // dispositivo online lo scarica subito (niente più bisogno di alzare a mano un
 // numero di versione o svuotare la cache).
-const CACHE_NAME = 'scrabbledeipovery-v5-network-first';
+const CACHE_NAME = 'scrabbledeipovery-v6-network-first';
 
 // File da salvare subito all'installazione. dizionario.txt/dizionario2.txt sono
 // opzionali: se non esistono ancora nel repo, il precache degli altri file riesce
@@ -61,7 +61,9 @@ self.addEventListener('fetch', (event) => {
   if (/^(firestore|identitytoolkit|securetoken|firebaseinstallations)\.googleapis\.com$/.test(host)) return;
 
   event.respondWith(
-    fetch(event.request)
+    // cache: 'no-cache' = chiede sempre al server se il file è cambiato (salta la cache HTTP
+    // di GitHub Pages, che altrimenti può servire il vecchio index.html per circa 10 minuti).
+    fetch(event.request, { cache: 'no-cache' })
       .then((response) => {
         if (response && response.ok) {
           const clone = response.clone();
