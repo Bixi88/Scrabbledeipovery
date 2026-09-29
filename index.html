@@ -497,6 +497,11 @@
     .rack-slot.dragging-source {
       opacity: 0.25;
     }
+    .rack-slot.rack-drop-hover {
+      outline: 3px dashed #2e7d32;
+      outline-offset: -3px;
+      background: #e8f5e0;
+    }
 
     .rack-slot.marked-swap {
       outline: 3px solid #e53935;
@@ -1893,8 +1898,47 @@
     if (dragGhostEl) { dragGhostEl.remove(); dragGhostEl = null; }
   }
 
+  // Indice dello slot del rack sotto il dito (o il più vicino in orizzontale se il dito è
+  // sulla fascia del rack ma tra due tessere). -1 se il dito non è sul rack.
+  function rackIndexAt(x, y) {
+    const box = rackSlotsEl.getBoundingClientRect();
+    if (y < box.top - 20 || y > box.bottom + 20 || x < box.left - 20 || x > box.right + 20) return -1;
+    let best = -1, bestD = Infinity;
+    Array.from(rackSlotsEl.children).forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      const d = Math.abs(x - (r.left + r.width / 2));
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    return best;
+  }
+
+  let hoverRackSlotEl = null;
+  function clearHoverRack() {
+    if (hoverRackSlotEl) { hoverRackSlotEl.classList.remove('rack-drop-hover'); hoverRackSlotEl = null; }
+  }
+
+  // Sposta la tessera da "from" a "to" nel rack (le altre scorrono), come trascinare una tessera vera.
+  function moveRackTile(from, to) {
+    if (playerRack.length < 2) return;
+    to = Math.max(0, Math.min(to, playerRack.length - 1));
+    if (from === to) return;
+    const [t] = playerRack.splice(from, 1);
+    playerRack.splice(to, 0, t);
+    selectedTileIndex = -1;
+    renderRack();
+  }
+
   function updateHoverCell(x, y) {
     clearHoverCell();
+    clearHoverRack();
+    if (dragState) {
+      const ri = rackIndexAt(x, y);
+      if (ri >= 0 && ri < playerRack.length && ri !== dragState.fromIndex) {
+        hoverRackSlotEl = rackSlotsEl.children[ri];
+        hoverRackSlotEl.classList.add('rack-drop-hover');
+        return;
+      }
+    }
     const el = document.elementFromPoint(x, y);
     const cellEl = el && el.closest ? el.closest('.cell') : null;
     if (cellEl) {
@@ -1936,10 +1980,14 @@
     if (moved) {
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const cellEl = el && el.closest ? el.closest('.cell') : null;
+      const rackTarget = rackIndexAt(e.clientX, e.clientY);
       removeGhost();
       clearHoverCell();
+      clearHoverRack();
       if (cellEl) {
         placeTileAt(+cellEl.dataset.row, +cellEl.dataset.col, fromIndex);
+      } else if (rackTarget >= 0) {
+        moveRackTile(fromIndex, rackTarget);     // rilasciata sul rack: cambia posto alla tessera
       }
     } else {
       // Nessun movimento: era un semplice tocco -> arma/disarma la lettera
@@ -1958,6 +2006,7 @@
     slot.classList.remove('dragging-source');
     removeGhost();
     clearHoverCell();
+    clearHoverRack();
     dragState = null;
   }
 
