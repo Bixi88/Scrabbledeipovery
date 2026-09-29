@@ -26,14 +26,16 @@ service cloud.firestore {
     }
 
     // Inviti: si legge un invito solo conoscendo il codice (niente elenco),
-    // si crea una volta sola e non si può più modificare.
+    // si crea una volta sola e non si può modificare. Lo può cancellare solo chi l'ha creato
+    // (annullamento invito): da quel momento il codice risulta "non valido".
     match /invites/{code} {
       allow get: if request.auth != null;
       allow list: if false;
       allow create: if request.auth != null
         && request.resource.data.creatorUid == request.auth.uid
         && request.resource.data.gameId is string;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.creatorUid == request.auth.uid;
     }
 
     match /games/{gameId} {
@@ -77,7 +79,13 @@ service cloud.firestore {
               || request.resource.data.status == 'finished'))
       );
 
-      allow delete: if false;
+      // Eliminare: una partita già conclusa (vinta, persa, pari o abbandonata), da uno dei
+      // due giocatori; oppure una partita ancora "in attesa" di sfidante (annulla l'invito,
+      // solo chi l'ha creata). Una partita "in corso" non si può cancellare: prima deve finire.
+      allow delete: if request.auth != null
+        && request.auth.uid in resource.data.players
+        && (resource.data.status == 'finished'
+            || (resource.data.status == 'waiting' && resource.data.players.size() == 1));
     }
   }
 }
