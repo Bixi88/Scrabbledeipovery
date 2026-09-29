@@ -11,3 +11,6 @@ Velga
 Mec
 Cresto
 Laba
+Frene
+Carimi
+Belci
