@@ -6,3 +6,5 @@
 
 Rosu
 Tamas
+Tico
+Velga
