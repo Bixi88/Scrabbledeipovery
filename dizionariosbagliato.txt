@@ -1,9 +1,4 @@
-# Parole VIETATE: hanno la priorità su dizionario.txt, dizionario2.txt e sulla lista di base.
-# Scrivi una parola per riga (o più parole separate da spazi), in minuscolo o maiuscolo.
-# Le righe che iniziano con # sono commenti e vengono ignorate.
-# Esempio (togli il # per attivarla):
-# paroladasbagliata
-
+Lozio
 Rosu
 Tamas
 Tico
