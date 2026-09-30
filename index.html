@@ -2532,6 +2532,22 @@
   // traiettoria ad arco verso il riquadro del punteggio, che nel frattempo conta verso
   // l'alto e "batte" a ogni arrivo. cellsWithLetters: [{row, col, letter}]. Richiama
   // onDone a fine animazione (sempre, anche se non ci sono celle da animare).
+  // Vibrazione "a rullo" per i punti: parte nello stesso istante in cui il punteggio sale.
+  // Ogni tessera che arriva dà un tic (più punti a quella tessera = più impulsi ravvicinati);
+  // all'ultima tessera si aggiunge una coda che rallenta: più punti totali = più rullo.
+  function scoreHaptic(share, isLast, total) {
+    if (!hapticsOn()) return;
+    const k = Math.max(1, Math.min(3, Math.ceil(share / 4)));
+    const pat = [];                                   // [vibra, pausa, vibra, ...]
+    for (let j = 0; j < k; j++) { if (j) pat.push(9); pat.push(7); }
+    if (isLast) {
+      const nT = Math.min(12, Math.floor(total / 4));
+      for (let j = 0; j < nT; j++) { pat.push(35 + j * 14); pat.push(7); }   // pause sempre più lunghe
+      pat.push(60); pat.push(30);                     // colpo finale
+    }
+    haptic(pat);
+  }
+
   function animateWordSubmit(cellsWithLetters, score, scoreEl, startScore, onDone) {
     const wrapper = document.querySelector('.board-wrapper');
     if (!cellsWithLetters.length || !wrapper || score <= 0) { onDone(); return; }
@@ -2606,6 +2622,7 @@
             scoreEl.classList.remove('score-pulse');
             void scoreEl.offsetWidth;
             scoreEl.classList.add('score-pulse');
+            scoreHaptic(shares[i], arrivedCount === n, score);
             if (arrivedCount === n) {
               scoreEl.textContent = startScore + score;
               boardEl.querySelectorAll('.dim-cell').forEach(el2 => el2.classList.remove('dim-cell'));
