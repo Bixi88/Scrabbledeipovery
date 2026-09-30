@@ -990,7 +990,7 @@
     @keyframes mpFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
     @keyframes mpSheetUp { from { transform: translateY(36px); opacity: 0.7; } to { transform: none; opacity: 1; } }
     @keyframes mpFade { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes tilePop { 0% { transform: scale(0.6); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
+    @keyframes cellDrop { 0% { transform: scale(0.6); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
     .mp-screen.mp-anim .mp-body > * { animation: mpFadeUp 0.28s ease both; }
     .mp-screen.mp-anim .mp-body > *:nth-child(2) { animation-delay: 0.04s; }
     .mp-screen.mp-anim .mp-body > *:nth-child(3) { animation-delay: 0.08s; }
@@ -999,7 +999,7 @@
     .mp-screen.mp-anim .mp-body > *:nth-child(n+6) { animation-delay: 0.2s; }
     .modal-overlay { animation: mpFade 0.18s ease; }
     .modal-sheet { animation: mpSheetUp 0.22s ease; }
-    .cell.pop { animation: tilePop 0.22s ease; }
+    .cell.pop { animation: cellDrop 0.22s ease; }
     .icon-btn, .bag-btn, .invia-btn, .scambia-btn, .rack-slot, .mp-row, .modal-option { transition: transform 0.12s, background 0.15s; }
     .icon-btn:active, .bag-btn:active { transform: scale(0.9); }
     .rack-slot:active { transform: scale(0.94); }
@@ -2304,6 +2304,17 @@
   // Disegna sopra il tabellone: cornici delle parole in formazione (verde/rossa),
   // badge col punteggio fuori dalla cornice e badge blu con i punti dell'ultima
   // parola giocata dalla CPU.
+  // Rettangolo di una cella calcolato dal layout, NON da getBoundingClientRect: quest'ultimo cambia mentre
+  // la tessera "rimbalza" (scale) e faceva uscire le cornici storte. Così le cornici che si incrociano
+  // condividono sempre gli stessi bordi.
+  function cellRect(r, c) {
+    const el = boardEl.children[r * BOARD_SIZE + c];
+    const par = el.offsetParent || boardEl;
+    const pr = par.getBoundingClientRect();
+    const left = pr.left + par.clientLeft + el.offsetLeft, top = pr.top + par.clientTop + el.offsetTop;
+    return { left, top, right: left + el.offsetWidth, bottom: top + el.offsetHeight, width: el.offsetWidth, height: el.offsetHeight };
+  }
+
   function drawOverlays() {
     const wrapper = document.querySelector('.board-wrapper');
     if (!wrapper) return;
@@ -2324,8 +2335,8 @@
         const result = validateAndScoreMove(pendingTiles);
         let mainRect = null;
         words.forEach((cells, i) => {
-          const first = cellEl(cells[0][0], cells[0][1]).getBoundingClientRect();
-          const last = cellEl(cells[cells.length - 1][0], cells[cells.length - 1][1]).getBoundingClientRect();
+          const first = cellRect(cells[0][0], cells[0][1]);
+          const last = cellRect(cells[cells.length - 1][0], cells[cells.length - 1][1]);
           const left = Math.min(first.left, last.left) - wr.left - 3;
           const top = Math.min(first.top, last.top) - wr.top - 3;
           const right = Math.max(first.right, last.right) - wr.left + 3;
@@ -2357,7 +2368,7 @@
     if (lastMove && board[lastMove.row][lastMove.col]) {
       // Pallino dei punti dell'ultima parola: sull'angolo esterno della parola, mai sulle lettere
       const cells = (lastMove.cells && lastMove.cells.length) ? lastMove.cells : [[lastMove.row, lastMove.col]];
-      const pos = badgeOutsideCorner(cells, wr, 0.07 * cellEl(lastMove.row, lastMove.col).getBoundingClientRect().width);
+      const pos = badgeOutsideCorner(cells, wr, 0.07 * cellRect(lastMove.row, lastMove.col).width);
       const b = document.createElement('div');
       const mvKey = lastMove.row + '_' + lastMove.col + '@' + lastMove.score;
       b.className = 'last-move-badge' + (lastMove.mine ? ' mine' : '') + (mvKey !== lastMoveBadgeKey ? ' pop' : '');
@@ -2379,8 +2390,8 @@
     const rs = cells.map(c => c[0]), cs = cells.map(c => c[1]);
     const r0 = Math.min(...rs), r1 = Math.max(...rs);
     const c0 = Math.min(...cs), c1 = Math.max(...cs);
-    const rect0 = boardEl.children[r0 * BOARD_SIZE + c0].getBoundingClientRect();
-    const rect1 = boardEl.children[r1 * BOARD_SIZE + c1].getBoundingClientRect();
+    const rect0 = cellRect(r0, c0);
+    const rect1 = cellRect(r1, c1);
     const corners = [
       { dr: 1,  dc: 1,  x: rect1.right, y: rect1.bottom },
       { dr: -1, dc: 1,  x: rect1.right, y: rect0.top },
