@@ -1050,6 +1050,25 @@
     .crop-stage img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; pointer-events: none; will-change: transform; }
     .crop-mask { position: absolute; left: 10px; top: 10px; width: 260px; height: 260px; border-radius: 50%; box-sizing: border-box; border: 2px solid rgba(255,255,255,0.9); box-shadow: 0 0 0 400px rgba(0,0,0,0.55); pointer-events: none; }
     .crop-zoom { width: 100%; accent-color: #4e9f5f; }
+
+    /* ---- pannelli: sfocatura, cassetto da sinistra, chiusura a swipe ---- */
+    .modal-overlay {
+      background: rgba(0,0,0,0.42);
+      -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+    }
+    .modal-sheet { overscroll-behavior: contain; will-change: transform; }
+    @keyframes drawerIn { from { transform: translateX(-100%); } to { transform: none; } }
+    .modal-overlay.drawer { align-items: stretch; justify-content: flex-start; }
+    .modal-overlay.drawer .modal-sheet {
+      width: min(86%, 340px); max-height: none; height: 100%; border-radius: 0 20px 20px 0;
+      box-shadow: 8px 0 28px rgba(0,0,0,0.35); padding-top: env(safe-area-inset-top, 0px);
+      animation: drawerIn 0.26s cubic-bezier(.2,.8,.2,1);
+    }
+    .modal-header .modal-x { display: none; }
+    /* hamburger della home: solo icona, come quella in partita */
+    .mp-menu-btn { background: none !important; width: 44px; height: 44px; overflow: visible; }
+    .mp-menu-btn svg { width: 30px; height: 30px; stroke-linejoin: round; }
+    .mp-menu-btn:active { background: none !important; opacity: 0.7; transform: scale(0.88); }
 </style>
 </head>
 <body>
@@ -1361,6 +1380,10 @@
   let dragState = null;         // stato del trascinamento in corso (dal rack)
   let popKey = null;            // "riga,colonna" della tessera appena piazzata (per l'animazione)
   let mpMenuOpen = false;       // il menu iniziale è aperto (serve per aggiornarlo dopo le notifiche)
+  let modalPushed = false;      // c'è una voce di cronologia per il pannello aperto (tasto/gesto indietro di Android)
+  let gamePushed = false;       // idem per la schermata di partita
+  let navIgnore = 0;            // popstate provocati da noi (history.back) da non interpretare
+  let modalClosing = false, modalCloseTimer = null;
 
   // ---------- vibrazione ----------
   const HAPTIC_KEY = 'scrabbleHaptics';
@@ -1433,28 +1456,119 @@
   }
 
   // ==================== MODALI (Opzioni / Sacchetto / Come si gioca) ====================
+  // ---------- tasto/gesto "indietro" di Android ----------
+  function navPush(kind) { try { history.pushState({ k: kind }, ''); } catch (e) { /* ignora */ } }
+  function navBack(kind) {
+    try {
+      if (history.state && history.state.k === kind) { navIgnore++; history.back(); }
+    } catch (e) { /* ignora */ }
+  }
+  window.addEventListener('popstate', () => {
+    if (navIgnore > 0) { navIgnore--; return; }
+    if (modalPushed) { dismissModal(true); return; }                    // prima si chiude il pannello aperto
+    if (gamePushed) { gamePushed = false; mpGoHome(); return; }         // poi si torna alla home
+  });
+
+  function resetModalStyles() {
+    modalSheet.style.transition = ''; modalSheet.style.transform = '';
+    modalOverlay.style.transition = ''; modalOverlay.style.opacity = '';
+  }
+
+  // Chiusura immediata (da codice)
   function closeModal() {
+    clearTimeout(modalCloseTimer); modalClosing = false;
     mpMenuOpen = false;
+    if (modalPushed) { modalPushed = false; navBack('m'); }
     modalOverlay.style.display = 'none';
+    modalOverlay.classList.remove('drawer');
+    modalOverlay.style.animation = ''; modalSheet.style.animation = '';
+    resetModalStyles();
     modalSheet.innerHTML = '';
   }
 
+  // Chiusura "a mano" (tocco fuori, swipe, indietro): il pannello scivola via, lo sfondo si schiarisce
+  function dismissModal(fromPop) {
+    if (fromPop) modalPushed = false;
+    if (modalOverlay.style.display === 'none') return;
+    if (modalClosing) return;
+    modalClosing = true;
+    const drawer = modalOverlay.classList.contains('drawer');
+    modalSheet.style.transition = 'transform 0.2s ease';
+    modalOverlay.style.transition = 'opacity 0.2s ease';
+    modalSheet.style.transform = drawer ? 'translateX(-105%)' : 'translateY(105%)';
+    modalOverlay.style.opacity = '0';
+    modalCloseTimer = setTimeout(closeModal, 210);
+  }
+
   let modalOpenedAt = 0;
-  function openModal(html) {
+  function openModal(html, opts) {
+    clearTimeout(modalCloseTimer); modalClosing = false;
+    const drawer = !!(opts && opts.drawer);
+    const wasOpen = modalOverlay.style.display === 'flex';
+    const sameKind = wasOpen && modalOverlay.classList.contains('drawer') === drawer;
     modalOpenedAt = Date.now();
+    resetModalStyles();
+    modalOverlay.classList.toggle('drawer', drawer);
     modalSheet.innerHTML = html;
     modalOverlay.style.display = 'flex';
+    // se cambia solo il contenuto dello stesso pannello (es. attivo/disattivo una voce) niente nuova animazione
+    if (sameKind) { modalSheet.style.animation = 'none'; modalOverlay.style.animation = 'none'; }
+    else { modalSheet.style.animation = ''; modalOverlay.style.animation = ''; }
+    if (!modalPushed) { modalPushed = true; navPush('m'); }
     const x = modalSheet.querySelector('.modal-x');
-    if (x) x.addEventListener('click', closeModal);
+    if (x) x.addEventListener('click', dismissModal);
   }
 
   modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay && Date.now() - modalOpenedAt > 400) closeModal();
+    if (e.target === modalOverlay && Date.now() - modalOpenedAt > 400) dismissModal();
   });
+
+  // Swipe per chiudere: verso il basso per i pannelli dal basso (opzioni, sacchetto...),
+  // verso sinistra per il cassetto della home.
+  (function () {
+    let g = null;
+    modalSheet.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1 || modalClosing) { g = null; return; }
+      if (e.target.closest && e.target.closest('.crop-stage, input[type="range"]')) { g = null; return; }
+      const t = e.touches[0];
+      g = { x: t.clientX, y: t.clientY, t: Date.now(), drag: false, drawer: modalOverlay.classList.contains('drawer') };
+    }, { passive: true });
+    modalSheet.addEventListener('touchmove', (e) => {
+      if (!g) return;
+      const t = e.touches[0], dx = t.clientX - g.x, dy = t.clientY - g.y;
+      if (!g.drag) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        const ok = g.drawer ? (dx < 0 && Math.abs(dx) > Math.abs(dy) * 1.2)
+                            : (dy > 0 && Math.abs(dy) > Math.abs(dx) * 1.2 && modalSheet.scrollTop <= 0);
+        if (!ok) { g = null; return; }
+        g.drag = true; modalSheet.style.transition = 'none';
+      }
+      if (e.cancelable) e.preventDefault();
+      const off = g.drawer ? Math.min(0, dx) : Math.max(0, dy);
+      modalSheet.style.transform = g.drawer ? 'translateX(' + off + 'px)' : 'translateY(' + off + 'px)';
+      const size = g.drawer ? modalSheet.offsetWidth : modalSheet.offsetHeight;
+      modalOverlay.style.opacity = String(Math.max(0.25, 1 - Math.abs(off) / (size * 1.3)));
+    }, { passive: false });
+    function end(e) {
+      if (!g || !g.drag) { g = null; return; }
+      const t = e.changedTouches[0];
+      const d = g.drawer ? -(t.clientX - g.x) : (t.clientY - g.y);
+      const v = d / Math.max(1, Date.now() - g.t);                 // px/ms
+      const size = g.drawer ? modalSheet.offsetWidth : modalSheet.offsetHeight;
+      g = null;
+      if (d > Math.min(110, size * 0.3) || (v > 0.55 && d > 30)) { haptic(8); dismissModal(); }
+      else {                                                        // rimbalza al suo posto
+        modalSheet.style.transition = 'transform 0.2s ease'; modalOverlay.style.transition = 'opacity 0.2s ease';
+        modalSheet.style.transform = ''; modalOverlay.style.opacity = '';
+      }
+    }
+    modalSheet.addEventListener('touchend', end, { passive: true });
+    modalSheet.addEventListener('touchcancel', end, { passive: true });
+  })();
 
   function openOptionsModal() {
     openModal(`
-      <div class="modal-header">Opzioni<div class="modal-x">✕</div></div>
+      <div class="modal-header">Opzioni</div>
       <div class="modal-option" data-action="bag">
         <div class="modal-option-icon" style="background:#2196f3;">💰</div>
         Sacchetto delle tessere (rimanenti: ${bag.length})
@@ -1528,7 +1642,7 @@
       <span class="letter">★</span><span class="count">${blankCount}</span>
     </div>`;
     openModal(`
-      <div class="modal-header">Sacchetto<div class="modal-x">✕</div></div>
+      <div class="modal-header">Sacchetto</div>
       <div class="bag-modal-counts">
         <div class="bag-modal-count">👤 Tu: ${playerRack.length}</div>
         <div class="bag-modal-count">${gameMode === 'mp' ? '🙂 ' + esc(mp.oppName) : '🤖 CPU'}: ${cpuRack.length}</div>
@@ -1545,7 +1659,7 @@
 
   function openHowToModal() {
     openModal(`
-      <div class="modal-header">Come si gioca<div class="modal-x">✕</div></div>
+      <div class="modal-header">Come si gioca</div>
       <div class="howto-body">
         Forma parole sulla griglia incrociando le lettere già presenti.<br><br>
         La prima parola deve passare per la casella centrale ★.<br><br>
@@ -1562,7 +1676,7 @@
     const letters = Object.keys(LETTER_VALUES);
     const btns = letters.map(l => `<div class="blank-letter-btn" data-l="${l}">${l}</div>`).join('');
     openModal(`
-      <div class="modal-header">Scegli una lettera<div class="modal-x">✕</div></div>
+      <div class="modal-header">Scegli una lettera</div>
       <div class="blank-picker-grid">${btns}</div>
       ${allowRecall ? '<div class="modal-option" id="blankRecall" style="justify-content:center;">↩ Rimetti in mano</div>' : ''}
     `);
@@ -3408,14 +3522,14 @@
 
   function mpOpenAvatar() {
     mpMenuOpen = false;
-    openModal('<div class="modal-header"><div class="modal-back">‹</div>Avatar<div class="modal-x">✕</div></div>' +
+    openModal('<div class="modal-header"><div class="modal-back">‹</div>Avatar</div>' +
       '<div class="mp-av-panel">' +
         '<div class="mp-av mp-av-big" data-avuid="' + esc(mp.uid || '') + '">👤</div>' +
         '<div class="mp-note" style="text-align:center;">La tua foto compare accanto al nome nella partita e la vede anche il tuo avversario.</div>' +
         '<button class="mp-btn" id="mpAvPick">📷 ' + (mpMyAv ? 'Cambia foto' : 'Carica una foto') + '</button>' +
         (mpMyAv ? '<button class="mp-btn ghost" id="mpAvDel" style="color:#8a2c2c;">🗑 Elimina foto</button>' : '') +
         '<input type="file" id="mpAvFile" accept="image/*" style="display:none;">' +
-      '</div>');
+      '</div>', { drawer: true });
     mpApplyAvatars();
     modalSheet.querySelector('.modal-back').addEventListener('click', mpOpenMenu);
     const file = document.getElementById('mpAvFile');
@@ -3434,13 +3548,13 @@
       const S = 280, D = 260, M = 10, OUT = 192;
       const iw = img.naturalWidth, ih = img.naturalHeight;
       if (!iw || !ih) { URL.revokeObjectURL(url); showNotification('Immagine non valida.', 2500); return; }
-      openModal('<div class="modal-header"><div class="modal-back">‹</div>Centra la foto<div class="modal-x">✕</div></div>' +
+      openModal('<div class="modal-header"><div class="modal-back">‹</div>Centra la foto</div>' +
         '<div class="crop-wrap">' +
           '<div class="crop-stage" id="cropStage"><img id="cropImg" alt=""><div class="crop-mask"></div></div>' +
           '<input type="range" id="cropZoom" class="crop-zoom" min="1" max="4" step="0.01" value="1">' +
           '<div class="mp-note" style="text-align:center;">Trascina la foto per spostarla, pizzica o usa il cursore per ingrandire.</div>' +
           '<div class="mp-btn-row" style="width:100%;padding:0;"><button class="mp-btn ghost" id="cropCancel">Annulla</button><button class="mp-btn" id="cropOk">OK</button></div>' +
-        '</div>');
+        '</div>', { drawer: true });
       const stage = document.getElementById('cropStage');
       const im = document.getElementById('cropImg');
       const slider = document.getElementById('cropZoom');
@@ -3540,7 +3654,7 @@
       '<span class="tx">' + esc(x.me) + ' ' + x.s[0] + ' – ' + x.s[1] + ' ' + esc(x.opp) + (x.end === 'resign' ? ' <small>· resa</small>' : '') + '</span>' +
       '<span class="ago">' + mpAgo(x.t) + '</span></div>').join('')
       : '<div class="howto-body">Nessuna partita conclusa ancora.</div>';
-    openModal('<div class="modal-header"><div class="modal-back">‹</div>Cronologia partite<div class="modal-x">✕</div></div>' + rows);
+    openModal('<div class="modal-header"><div class="modal-back">‹</div>Cronologia partite</div>' + rows, { drawer: true });
     modalSheet.querySelector('.modal-back').addEventListener('click', mpOpenMenu);
   }
 
@@ -3561,11 +3675,11 @@
     if (!PUSH_ENABLED || !pushSupported()) { pushDis = true; pushSub = 'Non disponibili su questo dispositivo'; }
     else if (pushIosNeedsInstall()) { pushDis = true; pushSub = 'Su iPhone: Condividi → Aggiungi alla schermata Home'; }
     else if (Notification.permission === 'denied') { pushDis = true; pushSub = 'Bloccate: riattivale dalle impostazioni del browser'; }
-    openModal('<div class="modal-header">Menu<div class="modal-x">✕</div></div>' +
+    openModal('<div class="modal-header">Menu</div>' +
       mpSwitchRow('vib', '📳', '#7e57c2', 'Vibrazione', canVib ? '' : 'Non supportata da questo dispositivo', canVib && hapticsOn(), !canVib) +
       mpSwitchRow('push', '🔔', '#f5a623', 'Notifiche', pushSub, !!mp.pushOn && !pushDis, pushDis) +
       '<div class="modal-option" data-m="hist"><div class="modal-option-icon" style="background:#26a69a;">📜</div><div style="flex:1;">Cronologia partite</div><div class="mp-chev">›</div></div>' +
-      '<div class="modal-option" data-m="avatar"><div class="modal-option-icon" style="background:#2196f3;">🙂</div><div style="flex:1;">Avatar</div><div class="mp-av mini" data-avuid="' + esc(mp.uid || '') + '">👤</div></div>');
+      '<div class="modal-option" data-m="avatar"><div class="modal-option-icon" style="background:#2196f3;">🙂</div><div style="flex:1;">Avatar</div><div class="mp-av mini" data-avuid="' + esc(mp.uid || '') + '">👤</div></div>', { drawer: true });
     mpMenuOpen = true;
     mpApplyAvatars();
     modalSheet.querySelectorAll('[data-m]').forEach(el => el.addEventListener('click', () => {
@@ -3702,6 +3816,7 @@
   const mpScreenEl = document.getElementById('mpScreen');
 
   function mpShowScreen(name, html) {
+    if (gamePushed) { gamePushed = false; navBack('g'); }
     const changed = mp.screen !== name;
     mp.screen = name;
     mpScreenEl.classList.toggle('mp-anim', changed);   // l'animazione parte solo quando cambia schermata
@@ -3710,7 +3825,25 @@
     mpScreenEl.scrollTop = 0;
   }
 
+  // Home: uno swipe orizzontale (da destra a sinistra o viceversa, non dal bordo estremo dove Android
+  // usa il gesto "indietro") apre il menu. Si chiude con swipe verso sinistra o toccando fuori.
+  (function () {
+    let sw = null;
+    mpScreenEl.addEventListener('touchstart', (e) => {
+      if (mp.screen !== 'home' || modalOverlay.style.display !== 'none' || e.touches.length !== 1) { sw = null; return; }
+      const t = e.touches[0]; sw = { x: t.clientX, y: t.clientY };
+    }, { passive: true });
+    mpScreenEl.addEventListener('touchend', (e) => {
+      if (!sw) return;
+      const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y, W = window.innerWidth;
+      const okStart = sw.x > 24 && sw.x < W - 24;
+      sw = null;
+      if (okStart && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) { haptic(10); mpOpenMenu(); }
+    }, { passive: true });
+  })();
+
   function mpHideScreen() {
+    if (!gamePushed) { gamePushed = true; navPush('g'); }      // il gesto "indietro" ora riporta alla home
     mp.screen = null;
     mpScreenEl.style.display = 'none';
     mpScreenEl.innerHTML = '';
@@ -3942,7 +4075,7 @@
 
   // Popup mostrato quando il codice non esiste (mai esistito o invito annullato dal creatore).
   function mpInvalidCodePopup() {
-    openModal('<div class="modal-header">Codice non valido<div class="modal-x">✕</div></div>' +
+    openModal('<div class="modal-header">Codice non valido</div>' +
       '<div class="mp-note" style="padding:16px;">Questo codice non esiste più: la partita è stata annullata oppure il codice è sbagliato. Chiedi un nuovo invito a chi ti ha sfidato.</div>' +
       '<div class="mp-btn-row"><button class="mp-btn" data-act="closePopup">OK</button></div>');
   }
@@ -4441,7 +4574,7 @@
       const s = mp.slot;
       footer = '<div class="howto-body">Penalità tessere rimaste: tu −' + g.penalties[s] + ', ' + esc(mp.oppName) + ' −' + g.penalties[1 - s] + '.</div>';
     }
-    openModal('<div class="modal-header">Cronologia mosse<div class="modal-x">✕</div></div>' + rows + footer);
+    openModal('<div class="modal-header">Cronologia mosse</div>' + rows + footer);
   }
 
   // ==================== EVENTI ====================
