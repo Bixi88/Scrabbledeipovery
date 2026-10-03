@@ -1074,6 +1074,7 @@
     .mp-top.home { padding: 14px 16px 74px; border-radius: 0 0 30px 30px; }
     .mp-top.home .t1 { font-size: clamp(1.4rem, 7vw, 1.8rem); letter-spacing: 0.14em; padding: 4px 56px 0 calc(56px + 0.14em); line-height: 1.15; white-space: nowrap; }
     .mp-top.home .t2 { font-size: 0.95rem; letter-spacing: 0.3em; padding-left: 0.3em; margin-top: 2px; }
+    .mp-top.home.compact { padding-bottom: 20px; }
     .mp-body.home { padding: 0 0 20px; gap: 0; }
     .mp-hero { position: relative; margin: -60px 16px 0; background: #fff; border-radius: 24px; padding: 14px clamp(12px, 4vw, 18px) 16px; box-shadow: 0 8px 24px rgba(38, 64, 29, 0.2); cursor: pointer; }
     .mp-hero:active { transform: scale(0.992); }
@@ -1083,7 +1084,7 @@
     .h-vs { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content); align-items: center; gap: clamp(4px, 1.6vw, 10px); margin-top: 14px; }
     .h-who { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; max-width: 100%; font-size: 0.88rem; color: #3a5a3a; }
     .h-nm { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .mp-av.h-av { width: clamp(56px, 17vw, 72px); height: clamp(56px, 17vw, 72px); border-radius: 50%; border: 4px solid #4e9f5f; box-sizing: border-box; font-size: 1.6rem; box-shadow: 0 3px 9px rgba(38, 64, 29, 0.2); }
+    .mp-av.h-av { width: clamp(56px, 17vw, 72px); height: clamp(56px, 17vw, 72px); border-radius: 50%; border: 3px solid #4e9f5f; box-sizing: border-box; font-size: 1.6rem; box-shadow: 0 3px 9px rgba(38, 64, 29, 0.2); }
     .h-nums { display: flex; align-items: baseline; justify-content: center; gap: clamp(3px, 1.6vw, 8px); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 0; }
     .h-nums .sm { font-size: clamp(25px, 8.2vw, 38px); font-weight: 500; color: #5b6b58; }
     .h-nums .dash { font-size: clamp(15px, 4.8vw, 24px); color: #5b6b58; }
@@ -1103,7 +1104,7 @@
     .g-row { display: flex; align-items: center; gap: 14px; padding: 14px; cursor: pointer; transition: background 0.15s, transform 0.12s; }
     .g-row + .g-row { border-top: 0.5px solid rgba(38, 64, 29, 0.14); }
     .g-row:active { background: #f2f2f2; transform: scale(0.99); }
-    .mp-av.g-av { width: 52px; height: 52px; font-size: 1.3rem; }
+    .mp-av.g-av { width: 52px; height: 52px; font-size: 1.3rem; border: 3px solid #4e9f5f; box-sizing: border-box; }
     .g-ico { width: 52px; height: 52px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; background: #f5e6b8; border: 1px solid #d4c090; border-bottom-width: 4px; color: #1a1a1a; }
     .g-ico svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .g-ico.dash { background: none; border: 1.5px dashed #5b6b58; border-radius: 50%; color: #3a5a3a; }
@@ -1111,7 +1112,9 @@
     .g-main .who { font-weight: 800; font-size: 1.05rem; line-height: 1.2; }
     .g-sc { margin-top: 2px; font-size: 0.88rem; color: #3a5a3a; font-variant-numeric: tabular-nums; }
     .g-sc b { font-weight: 900; color: #26401d; }
-    .g-main .tw { margin-top: 7px; }
+    .g-main .tw { margin-top: 7px; gap: 2px; }
+    .g-main .mt { --ts: 19px; }
+    .g-main .mp-pts { margin-left: 4px; }
     .g-last { margin-top: 3px; font-size: 0.78rem; color: #5b6b58; }
     .g-r { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
     .g-ago { font-size: 0.72rem; color: #5b6b58; white-space: nowrap; }
@@ -3912,12 +3915,12 @@
     mpScreenEl.innerHTML = '';
   }
 
-  function mpTopHtml(sub, home) {
+  function mpTopHtml(sub, home, compact) {
     const menu = home
       ? '<button class="mp-menu-btn" data-act="menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>' +
         '<button class="mp-me-btn" data-act="avatar" aria-label="Avatar" data-avuid="' + esc(mp.uid || '') + '">👤</button>'
       : '';
-    return '<div class="mp-top' + (home ? ' home' : '') + '">' + menu + '<div class="t1">SCRABBLE</div><div class="t2">' + esc(sub) + '</div></div>';
+    return '<div class="mp-top' + (home ? ' home' : '') + (compact ? ' compact' : '') + '">' + menu + '<div class="t1">SCRABBLE</div><div class="t2">' + esc(sub) + '</div></div>';
   }
 
   function mpShowNickScreen(errMsg, value) {
@@ -4075,7 +4078,7 @@
 
     const dock = online
       ? '<div class="mp-dock"><button class="mp-btn" data-act="new">Nuova partita</button><button class="mp-btn ghost" data-act="join">Codice invito</button></div>' : '';
-    mpShowScreen('home', mpTopHtml('deipovery', true) + '<div class="mp-body home">' + body + '</div>' + dock);
+    mpShowScreen('home', mpTopHtml('deipovery', true, !hero) + '<div class="mp-body home">' + body + '</div>' + dock);
     mpApplyAvatars();
     mpEnsureAvatars(Object.values(mp.games).filter(g => g.players && g.players.length === 2)
       .map(g => g.players[1 - g.players.indexOf(mp.uid)]));
@@ -4085,6 +4088,7 @@
   // La scheda toccata si allarga fino a riempire lo schermo (le foto volano nei riquadri dei punteggi),
   // poi la schermata di gioco compare: caselle dal centro verso i bordi, parole che cadono, rack che sale.
   let openAnim = null;
+  const OPEN_FLY_MS = 2000;
   const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function mpAnimRel(el) {
@@ -4112,19 +4116,29 @@
       { left: '0px', top: '0px', width: A.width + 'px', height: A.height + 'px', borderRadius: '0px', backgroundColor: appBg }
     ], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' }).onfinish = () => { st.grown = true; mpOpenAnimMaybeReveal(); };
 
-    // foto che volano dalla scheda ai riquadri dei punteggi
+    // foto che volano dalla scheda ai riquadri dei punteggi: partono SUBITO e viaggiano piano, così
+    // arrivano a posto quando anche tutta la schermata animata ha finito di comparire
     const pairs = [[card.querySelector('[data-avuid="' + (mp.uid || '') + '"]'), document.querySelector('.player-avatar')]];
     const opp = [...card.querySelectorAll('[data-avuid]')].find(e => e.dataset.avuid !== mp.uid);
     pairs.push([opp, document.getElementById('cpuAvatarEl')]);
-    pairs.forEach(([src, dst], i) => {
+    pairs.forEach(([src, dst]) => {
       if (!src || !dst || !src.classList.contains('has-img')) return;
       const a = mpAnimRel(src), cs = getComputedStyle(src), f = document.createElement('div');
       f.className = 'open-fly';
       f.style.backgroundImage = cs.backgroundImage;
       Object.assign(f.style, { left: a.l + 'px', top: a.t + 'px', width: a.w + 'px', height: a.h + 'px', border: cs.borderTopWidth + ' solid ' + cs.borderTopColor });
       app.appendChild(f);
-      st.flies.push({ el: f, dst, from: a, ring: [cs.borderTopWidth, cs.borderTopColor], i });
+      const b = mpAnimRel(dst), ds = getComputedStyle(dst);
+      dst.style.visibility = 'hidden';                 // il riquadro resta vuoto finché la foto non atterra
+      const anim = f.animate([
+        { left: a.l + 'px', top: a.t + 'px', width: a.w + 'px', height: a.h + 'px', borderColor: cs.borderTopColor, borderWidth: cs.borderTopWidth },
+        { left: b.l + 'px', top: b.t + 'px', width: b.w + 'px', height: b.h + 'px', borderColor: ds.borderTopColor, borderWidth: ds.borderTopWidth }
+      ], { duration: OPEN_FLY_MS, easing: 'cubic-bezier(.3,.6,.3,1)', fill: 'forwards' });
+      const fl = { el: f, dst, anim };
+      anim.onfinish = () => { dst.style.visibility = ''; f.remove(); };
+      st.flies.push(fl);
     });
+    st.flyEnd = performance.now() + OPEN_FLY_MS;
     openAnim = st;
     return st;
   }
@@ -4145,18 +4159,9 @@
     document.querySelectorAll('#rackSlots .rack-slot').forEach((s, k) => s.style.setProperty('--k', k));
     app.classList.add('stage-in');
     haptic([12, 40, 12]);
-    st.flies.forEach(({ el, dst, from, ring }) => {
-      const b = mpAnimRel(dst), cs = getComputedStyle(dst);
-      el.animate([
-        { left: from.l + 'px', top: from.t + 'px', width: from.w + 'px', height: from.h + 'px', borderColor: ring[1], borderWidth: ring[0] },
-        { left: b.l + 'px', top: b.t + 'px', width: b.w + 'px', height: b.h + 'px', borderColor: cs.borderTopColor, borderWidth: cs.borderTopWidth }
-      ], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
-    });
     // la scheda si dissolve mentre le foto atterrano
-    st.curtain.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, delay: 220, fill: 'forwards' }).onfinish = () => {
-      st.curtain.remove(); st.flies.forEach(f => f.el.remove());
-    };
-    setTimeout(() => { app.classList.remove('stage-in'); }, 2200);
+    st.curtain.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, delay: 220, fill: 'forwards' }).onfinish = () => { st.curtain.remove(); };
+    setTimeout(() => { app.classList.remove('stage-in'); }, Math.max(2200, st.flyEnd - performance.now() + 150));
     openAnim = null;
   }
 
@@ -4165,7 +4170,8 @@
   function mpOpenAnimAbort() {
     const st = openAnim; if (!st) return;
     clearTimeout(st.timer);
-    st.curtain.remove(); st.flies.forEach(f => f.el.remove());
+    st.curtain.remove();
+    st.flies.forEach(f => { f.anim.cancel(); f.el.remove(); f.dst.style.visibility = ''; });
     openAnim = null;
   }
 
