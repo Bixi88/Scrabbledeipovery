@@ -1120,9 +1120,16 @@
     .g-ago { font-size: 0.72rem; color: #5b6b58; white-space: nowrap; }
     .g-r .mp-badge { margin-left: 0; }
     .g-cancel { border: 0; background: none; color: #8a2c2c; font-size: 0.88rem; font-weight: 700; padding: 8px 2px; cursor: pointer; flex-shrink: 0; }
-    .mp-dock { position: sticky; bottom: 0; z-index: 3; margin-top: auto; display: flex; gap: 10px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: rgba(217, 237, 248, 0.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+    .mp-dock { position: sticky; bottom: 0; z-index: 3; margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: rgba(217, 237, 248, 0.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+    .mp-dock-btns { display: flex; gap: 10px; }
     .mp-dock .mp-btn { flex: 1; padding: 15px 10px; }
-    .mp-dock .mp-btn:first-child { flex: 1.5; }
+    .mp-dock-btns .mp-btn:first-child { flex: 1.5; }
+    .mp-pills { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .mp-pill { display: flex; align-items: center; gap: 8px; max-width: 100%; padding: 4px 4px 4px 12px; background: #fff; border-radius: 999px; box-shadow: 0 1px 4px rgba(38, 64, 29, 0.18); font-size: 0.82rem; color: #3a5a3a; cursor: pointer; }
+    .mp-pill svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .mp-pill b { color: #26401d; letter-spacing: 0.06em; margin-left: 2px; }
+    .mp-pill .p-x { border: 0; background: none; color: #8a2c2c; font-size: 0.82rem; font-weight: 800; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+    .mp-pill .p-x:active { background: #f2f2f2; }
 
     /* ---- animazione "apri partita": la scheda si allarga e diventa il tabellone ---- */
     .open-curtain { position: absolute; z-index: 260; pointer-events: none; background: #fff; }
@@ -1135,7 +1142,9 @@
     @keyframes cellIn { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
     @keyframes tileDrop { from { opacity: 0; transform: translateY(-14px) scale(1.25); } to { opacity: 1; transform: none; } }
     @keyframes rackUp { from { opacity: 0; transform: translateY(70px) rotate(-8deg); } to { opacity: 1; transform: none; } }
-</style>
+    .exit-layer { position: absolute; inset: 0; z-index: 215; display: flex; flex-direction: column; overflow: hidden; pointer-events: none; box-shadow: 8px 0 22px rgba(0, 0, 0, 0.28); will-change: transform; }
+    html, body { overscroll-behavior: none; }   /* niente "spostamento" della pagina con gli swipe laterali */
+  </style>
 </head>
 <body>
 <div class="app-container" id="app">
@@ -1448,6 +1457,7 @@
   let mpMenuOpen = false;       // il menu iniziale è aperto (serve per aggiornarlo dopo le notifiche)
   let modalPushed = false;      // c'è una voce di cronologia per il pannello aperto (tasto/gesto indietro di Android)
   let gamePushed = false;       // idem per la schermata di partita
+  let subPushed = false;        // idem per le schermate a pagina (nuova partita, codice invito)
   let navIgnore = 0;            // popstate provocati da noi (history.back) da non interpretare
   let modalClosing = false, modalCloseTimer = null;
 
@@ -1532,7 +1542,8 @@
   window.addEventListener('popstate', () => {
     if (navIgnore > 0) { navIgnore--; return; }
     if (modalPushed) { dismissModal(true); return; }                    // prima si chiude il pannello aperto
-    if (gamePushed) { gamePushed = false; mpGoHome(); return; }         // poi si torna alla home
+    if (subPushed) { subPushed = false; mpBackToHome(); return; }       // schermata a pagina: scorre via e sotto c'è la home
+    if (gamePushed) { gamePushed = false; mpBackToHome(); return; }     // partita: idem
   });
 
   function resetModalStyles() {
@@ -1680,7 +1691,7 @@
         else if (action === 'swap') { closeModal(); toggleSwapMode(); }
         else if (action === 'history') { mpOpenHistory(); }
         else if (action === 'resign') { closeModal(); mpResign(); }
-        else if (action === 'home') { closeModal(); mpGoHome(); }
+        else if (action === 'home') { closeModal(); mpBackToHome(); }
         else if (action === 'newgame') {
           closeModal();
           if (confirm('Vuoi iniziare una nuova partita? Quella in corso andrà persa.')) { clearSavedGame(); newGame(); }
@@ -3883,9 +3894,11 @@
 
   function mpShowScreen(name, html) {
     if (gamePushed) { gamePushed = false; navBack('g'); }
+    if (name === 'home') { if (subPushed) { subPushed = false; navBack('s'); } }
+    else if ((name === 'join' || name === 'invite') && !subPushed) { subPushed = true; navPush('s'); }
     const changed = mp.screen !== name;
     mp.screen = name;
-    mpScreenEl.classList.toggle('mp-anim', changed);   // l'animazione parte solo quando cambia schermata
+    mpScreenEl.classList.toggle('mp-anim', changed && !mp.skipAnim);   // l'animazione parte solo quando cambia schermata (non quando si torna indietro)
     mpScreenEl.innerHTML = html;
     mpScreenEl.style.display = 'flex';
     mpScreenEl.scrollTop = 0;
@@ -3904,12 +3917,13 @@
       const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y, W = window.innerWidth;
       const okStart = sw.x > 24 && sw.x < W - 24;
       sw = null;
-      if (okStart && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) { haptic(10); mpOpenMenu(); }
+      if (okStart && dx > 70 && dx > Math.abs(dy) * 1.8) { haptic(10); mpOpenMenu(); }   // solo da sinistra verso destra
     }, { passive: true });
   })();
 
   function mpHideScreen() {
-    if (!gamePushed) { gamePushed = true; navPush('g'); }      // il gesto "indietro" ora riporta alla home
+    if (subPushed) { subPushed = false; gamePushed = true; try { history.replaceState({ k: 'g' }, ''); } catch (e) { /* ignora */ } }   // la voce della schermata a pagina diventa quella della partita
+    else if (!gamePushed) { gamePushed = true; navPush('g'); }      // il gesto "indietro" ora riporta alla home
     mp.screen = null;
     mpScreenEl.style.display = 'none';
     mpScreenEl.innerHTML = '';
@@ -4039,6 +4053,14 @@
       '<div class="g-r"><div class="mp-badge ' + cls + '">' + badge + '</div>' + (info.ago ? '<span class="g-ago">' + info.ago + '</span>' : '') + '</div>' + del + '</div>';
   }
 
+  // Invito in attesa: una pillola minimale (solo il codice) con "Annulla" sempre a portata di pollice
+  function mpWaitPill(id, g) {
+    return '<div class="mp-pill" data-act="open" data-id="' + esc(id) + '" title="Rivedi l\'invito">' +
+      '<svg viewBox="0 0 24 24"><path d="M7 3h10M7 21h10"/><path d="M8 3c0 5 4 6 4 9s-4 4-4 9M16 3c0 5-4 6-4 9s4 4 4 9"/></svg>' +
+      '<span class="p-t">In attesa <b>' + esc(g.code || '') + '</b></span>' +
+      '<button class="p-x" data-act="del" data-id="' + esc(id) + '">Annulla</button></div>';
+  }
+
   function mpCpuRow() {
     return '<div class="g-row" data-act="cpu">' +
       '<div class="g-ico"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></div>' +
@@ -4058,7 +4080,7 @@
     [mine, theirs, waiting, done].forEach(l => l.sort(byRecent));
     const online = !(mp.offline || !mp.uid);
     const hero = online && mine.length ? mine[0] : null;
-    const others = (online ? [...mine.slice(hero ? 1 : 0), ...theirs, ...waiting] : []);
+    const others = (online ? [...mine.slice(hero ? 1 : 0), ...theirs] : []);
 
     let body = '';
     if (!online) {
@@ -4076,8 +4098,10 @@
       body += '<div class="mp-label">Concluse</div><div class="mp-list">' + done.slice(0, 15).map(([id, g]) => mpGameRow(id, g)).join('') + '</div>';
     }
 
+    const pills = online ? waiting.map(([id, g]) => mpWaitPill(id, g)).join('') : '';
     const dock = online
-      ? '<div class="mp-dock"><button class="mp-btn" data-act="new">Nuova partita</button><button class="mp-btn ghost" data-act="join">Codice invito</button></div>' : '';
+      ? '<div class="mp-dock">' + (pills ? '<div class="mp-pills">' + pills + '</div>' : '') +
+        '<div class="mp-dock-btns"><button class="mp-btn" data-act="new">Nuova partita</button><button class="mp-btn ghost" data-act="join">Codice invito</button></div></div>' : '';
     mpShowScreen('home', mpTopHtml('deipovery', true, !hero) + '<div class="mp-body home">' + body + '</div>' + dock);
     mpApplyAvatars();
     mpEnsureAvatars(Object.values(mp.games).filter(g => g.players && g.players.length === 2)
@@ -4196,7 +4220,7 @@
     else if (act === 'new') mpRun(mpCreateGame);
     else if (act === 'join') mpShowJoinScreen();
     else if (act === 'joinGo') { const v = document.getElementById('mpCodeInput').value; mpRun(() => mpJoinByCode(v)); }
-    else if (act === 'home') mpShowHome();
+    else if (act === 'home') mpBackToHome();
     else if (act === 'nick') { const v = document.getElementById('mpNickInput').value; mpRun(() => mpSubmitNick(v)); }
     else if (act === 'retry') mpStart();
     else if (act === 'del') { e.stopPropagation(); mpRun(() => mpDeleteGame(el.dataset.id)); }
@@ -4351,6 +4375,41 @@
     mpShowHome();
   }
 
+  // ---------- ritorno alla home con scorrimento ----------
+  // Una copia di ciò che si vede ora (schermata a pagina o partita) scivola verso sinistra: sotto c'è già la home,
+  // come due schermate sovrapposte.
+  function mpExitLayer() {
+    const app = document.getElementById('app');
+    let layer;
+    if (mp.screen) {
+      layer = mpScreenEl.cloneNode(true);
+      layer.classList.remove('mp-anim');
+      layer.style.animation = 'none';
+    } else {
+      layer = document.createElement('div');
+      layer.style.background = getComputedStyle(app).backgroundColor;
+      [...app.children].forEach(ch => {
+        if (ch === mpScreenEl || ch === modalOverlay || ch === notificationEl || ch.matches('.exit-layer, .open-curtain, .open-fly, .fly-layer, script')) return;
+        layer.appendChild(ch.cloneNode(true));
+      });
+    }
+    layer.classList.add('exit-layer');
+    return layer;
+  }
+
+  function mpBackToHome() {
+    if (reduceMotion() || openAnim) { mpGoHome(); return; }
+    const layer = mpExitLayer();
+    document.getElementById('app').appendChild(layer);
+    mp.skipAnim = true;
+    try { mpGoHome(); } finally { mp.skipAnim = false; }
+    haptic(8);
+    const done = () => layer.remove();
+    layer.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-100%)' }],
+      { duration: 300, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' }).onfinish = done;
+    setTimeout(done, 900);
+  }
+
   function mpOpenGame(id, srcEl) {
     mpCloseGameListener();
     closeModal();
@@ -4376,7 +4435,12 @@
   }
 
   function mpOnGameSnap(snap) {
-    if (!snap.exists()) { mpCloseGameListener(); showNotification('Partita non trovata.', 2500); mpShowHome(); return; }
+    if (!snap.exists()) {
+      mpCloseGameListener();
+      const wasDone = mp.game && mp.game.status === 'finished';          // conclusa e poi eliminata (rivincita o pulizia): nessun avviso
+      if (!wasDone) showNotification('Partita non trovata.', 2500);
+      mpShowHome(); return;
+    }
     const d = snap.data();
     if (!d.players.includes(mp.uid)) { mpCloseGameListener(); showNotification('Non fai parte di questa partita.', 2500); mpShowHome(); return; }
     if (d.status === 'waiting') { mpCloseGameListener(); mpShowInvite(snap.id, d.code || ''); return; }
@@ -4729,6 +4793,7 @@
       });
       if (created) {
         mpNotifyOpponent(newId, 'rematch');
+        mpCloseGameListener();                      // altrimenti la cancellazione della vecchia partita mostra "non trovata"
         try { await FB.deleteDoc(oldRef); } catch (e) { /* le regole potrebbero non essere ancora aggiornate: non bloccare la rivincita */ }
       }
       mpOpenGame(newId);
@@ -4752,29 +4817,36 @@
       : 'Eliminare questa partita conclusa? Non si può annullare.';
     if (!confirm(msg)) return;
     if (!navigator.onLine) { showNotification(mpErrText(mpErr('offline')), 3000); return; }
-    const FB = mp.FB;
+    const FB = mp.FB, ref = FB.doc(mp.db, 'games', id);
     try {
       if (waiting) {
-        const ref = FB.doc(mp.db, 'games', id);
+        // Si cancella solo la partita (con controllo che nessuno sia già entrato). Il codice invito si pulisce dopo:
+        // se non riesce non è un problema, perché senza partita il codice risulta comunque "non valido".
         const res = await FB.runTransaction(mp.db, async (tx) => {
           const s = await tx.get(ref);
-          if (!s.exists()) return { ok: true };                       // già sparita
+          if (!s.exists()) return { gone: true };
           const d = s.data();
           if (d.status !== 'waiting' || d.players.length !== 1) return { taken: true };
           tx.delete(ref);
-          if (d.code) tx.delete(FB.doc(mp.db, 'invites', d.code));
           return { ok: true };
         });
         if (res.taken) { showNotification('Nel frattempo è entrato uno sfidante: la partita è partita.', 3500); return; }
-        showNotification('Invito annullato.', 2000);
+        if (g.code) { try { await FB.deleteDoc(FB.doc(mp.db, 'invites', g.code)); } catch (e) { console.warn('Codice invito non rimosso', e); } }
+        if (res.gone) { delete mp.games[id]; if (mp.screen === 'home') mpRenderHome(); }
+        showNotification(res.gone ? 'Questa partita era già stata eliminata.' : 'Invito annullato.', 2200);
         if (mp.screen === 'invite') mpShowHome();
       } else {
-        await FB.deleteDoc(FB.doc(mp.db, 'games', id));
+        await FB.deleteDoc(ref);
       }
     } catch (err) {
-      const c = err && err.code;
-      if (c === 'permission-denied' || c === 'not-found') showNotification('Questa partita è già stata eliminata.', 2500);
-      else showNotification(mpErrText(err), 3500);
+      console.warn('Eliminazione non riuscita', err);
+      if (err && err.code === 'permission-denied') {
+        // Rileggo la partita: se non esiste più (le regole non permettono di leggere una partita assente) la tolgo dall'elenco
+        let present = false;
+        try { present = (await FB.getDoc(ref)).exists(); } catch (e2) { present = false; }
+        if (present) showNotification('Non riesco ad annullare adesso. Riprova tra poco.', 3000);
+        else { delete mp.games[id]; if (mp.screen === 'home') mpRenderHome(); showNotification('Questa partita era già stata eliminata.', 2500); }
+      } else showNotification(mpErrText(err), 3500);
     }
   }
 
@@ -4800,7 +4872,7 @@
     if (gameMode === 'mp' && gameOver) { mpRun(mpRematch); return; }
     if (swapMode) confirmSwap(); else playerPlay();
   });
-  backBtn.addEventListener('click', mpGoHome);
+  backBtn.addEventListener('click', mpBackToHome);
   skipBtn.addEventListener('click', () => { if (swapMode) exitSwapMode(); else skipTurn(); });
   recallBtn.addEventListener('click', recallAll);
   swapBtn.addEventListener('click', toggleSwapMode);
