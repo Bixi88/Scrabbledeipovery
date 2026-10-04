@@ -153,6 +153,8 @@
       transition: opacity 0.25s;
     }
     .player-side:not(.active) .avatar { opacity: 0.8; }
+    .player-side.active .avatar { border-color: #4e9f5f; }
+    .player-side .avatar { transition: opacity 0.25s, border-color 0.25s; }
 
     .avatar.player-avatar { background: linear-gradient(135deg, #4a90e2, #2c5aa0); color: #fff; }
     .avatar.cpu-avatar { background: linear-gradient(135deg, #f5a623, #d48a10); color: #fff; }
@@ -997,7 +999,8 @@
     .mp-screen.mp-anim .mp-body > *:nth-child(4) { animation-delay: 0.12s; }
     .mp-screen.mp-anim .mp-body > *:nth-child(5) { animation-delay: 0.16s; }
     .mp-screen.mp-anim .mp-body > *:nth-child(n+6) { animation-delay: 0.2s; }
-    .modal-overlay { animation: mpFade 0.18s ease; }
+    .modal-overlay { animation: scrimIn 0.2s ease; }
+    @keyframes scrimIn { from { background-color: rgba(0, 0, 0, 0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } to { background-color: rgba(0, 0, 0, 0.42); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); } }
     .modal-sheet { animation: mpSheetUp 0.22s ease; }
     .cell.pop { animation: cellDrop 0.22s ease; }
     .icon-btn, .bag-btn, .invia-btn, .scambia-btn, .rack-slot, .mp-row, .modal-option { transition: transform 0.12s, background 0.15s; }
@@ -1134,14 +1137,15 @@
     /* ---- animazione "apri partita": la scheda si allarga e diventa il tabellone ---- */
     .open-curtain { position: absolute; z-index: 260; pointer-events: none; background: #fff; }
     .open-fly { position: absolute; z-index: 270; border-radius: 50%; background-size: cover; background-position: center; box-sizing: border-box; pointer-events: none; }
-    .stage-in .header, .stage-in .player-panel, .stage-in .title-area, .stage-in .bottom-bar { animation: gFade 0.35s ease both; animation-delay: 0.08s; }
-    .stage-in .cell { animation: cellIn 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; animation-delay: calc(var(--d, 0) * 1ms + 100ms); }
-    .stage-in .cell.occupied { animation: tileDrop 0.46s cubic-bezier(0.3, 1.5, 0.5, 1) both; animation-delay: calc(var(--d, 0) * 1ms + 400ms); }
-    .stage-in .rack-slot.filled { animation: rackUp 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both; animation-delay: calc(var(--k, 0) * 70ms + 640ms); }
+    .stage-in .header, .stage-in .player-panel, .stage-in .title-area, .stage-in .bottom-bar { animation: gFade 0.35s ease backwards; animation-delay: 0.08s; }
+    .stage-in .cell.si { animation: cellIn 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards; animation-delay: calc(var(--d, 0) * 1ms + 100ms); }
+    .stage-in .cell.si.occupied { animation: tileDrop 0.46s cubic-bezier(0.3, 1.5, 0.5, 1) backwards; animation-delay: calc(var(--d, 0) * 1ms + 400ms); }
+    .stage-in .rack-slot.filled.si { animation: rackUp 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) backwards; animation-delay: calc(var(--k, 0) * 70ms + 640ms); }
     @keyframes gFade { from { opacity: 0; } to { opacity: 1; } }
     @keyframes cellIn { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
     @keyframes tileDrop { from { opacity: 0; transform: translateY(-14px) scale(1.25); } to { opacity: 1; transform: none; } }
     @keyframes rackUp { from { opacity: 0; transform: translateY(70px) rotate(-8deg); } to { opacity: 1; transform: none; } }
+    .exit-layer, .exit-layer * { animation: none !important; }
     .exit-layer { position: absolute; inset: 0; z-index: 215; display: flex; flex-direction: column; overflow: hidden; pointer-events: none; box-shadow: 8px 0 22px rgba(0, 0, 0, 0.28); will-change: transform; }
     html, body { overscroll-behavior: none; }   /* niente "spostamento" della pagina con gli swipe laterali */
   </style>
@@ -1546,9 +1550,17 @@
     if (gamePushed) { gamePushed = false; mpBackToHome(); return; }     // partita: idem
   });
 
+  // Lo sfondo (scurito e sfocato) si schiarisce da solo: il pannello non deve mai diventare trasparente.
+  function setScrim(a) {
+    modalOverlay.style.backgroundColor = 'rgba(0, 0, 0, ' + (0.42 * a).toFixed(3) + ')';
+    const bl = 'blur(' + (5 * a).toFixed(2) + 'px)';
+    modalOverlay.style.backdropFilter = bl; modalOverlay.style.webkitBackdropFilter = bl;
+  }
+  const SCRIM_TRANSITION = 'background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease';
   function resetModalStyles() {
     modalSheet.style.transition = ''; modalSheet.style.transform = '';
     modalOverlay.style.transition = ''; modalOverlay.style.opacity = '';
+    modalOverlay.style.backgroundColor = ''; modalOverlay.style.backdropFilter = ''; modalOverlay.style.webkitBackdropFilter = '';
   }
 
   // Chiusura immediata (da codice)
@@ -1571,9 +1583,9 @@
     modalClosing = true;
     const drawer = modalOverlay.classList.contains('drawer');
     modalSheet.style.transition = 'transform 0.2s ease';
-    modalOverlay.style.transition = 'opacity 0.2s ease';
+    modalOverlay.style.transition = SCRIM_TRANSITION;
     modalSheet.style.transform = drawer ? 'translateX(-105%)' : 'translateY(105%)';
-    modalOverlay.style.opacity = '0';
+    setScrim(0);
     modalCloseTimer = setTimeout(closeModal, 210);
   }
 
@@ -1624,7 +1636,7 @@
       const off = g.drawer ? Math.min(0, dx) : Math.max(0, dy);
       modalSheet.style.transform = g.drawer ? 'translateX(' + off + 'px)' : 'translateY(' + off + 'px)';
       const size = g.drawer ? modalSheet.offsetWidth : modalSheet.offsetHeight;
-      modalOverlay.style.opacity = String(Math.max(0.25, 1 - Math.abs(off) / (size * 1.3)));
+      setScrim(Math.max(0.25, 1 - Math.abs(off) / (size * 1.3)));
     }, { passive: false });
     function end(e) {
       if (!g || !g.drag) { g = null; return; }
@@ -1635,8 +1647,8 @@
       g = null;
       if (d > Math.min(110, size * 0.3) || (v > 0.55 && d > 30)) { haptic(8); dismissModal(); }
       else {                                                        // rimbalza al suo posto
-        modalSheet.style.transition = 'transform 0.2s ease'; modalOverlay.style.transition = 'opacity 0.2s ease';
-        modalSheet.style.transform = ''; modalOverlay.style.opacity = '';
+        modalSheet.style.transition = 'transform 0.2s ease'; modalOverlay.style.transition = SCRIM_TRANSITION;
+        modalSheet.style.transform = ''; setScrim(1);
       }
     }
     modalSheet.addEventListener('touchend', end, { passive: true });
@@ -3736,9 +3748,8 @@
   }
 
   // ---------- menu ----------
-  function mpSwitchRow(m, icon, bg, label, sub, on, disabled) {
+  function mpSwitchRow(m, label, sub, on, disabled) {
     return '<div class="modal-option' + (disabled ? ' disabled' : '') + '" data-m="' + m + '">' +
-      '<div class="modal-option-icon" style="background:' + bg + ';">' + icon + '</div>' +
       '<div style="flex:1;min-width:0;">' + label + (sub ? '<div class="mp-opt-sub">' + sub + '</div>' : '') + '</div>' +
       '<div class="mp-switch' + (on ? ' on' : '') + '"></div></div>';
   }
@@ -3753,10 +3764,10 @@
     else if (pushIosNeedsInstall()) { pushDis = true; pushSub = 'Su iPhone: Condividi → Aggiungi alla schermata Home'; }
     else if (Notification.permission === 'denied') { pushDis = true; pushSub = 'Bloccate: riattivale dalle impostazioni del browser'; }
     openModal('<div class="modal-header">Menu</div>' +
-      mpSwitchRow('vib', '📳', '#7e57c2', 'Vibrazione', canVib ? '' : 'Non supportata da questo dispositivo', canVib && hapticsOn(), !canVib) +
-      mpSwitchRow('push', '🔔', '#f5a623', 'Notifiche', pushSub, !!mp.pushOn && !pushDis, pushDis) +
-      '<div class="modal-option" data-m="hist"><div class="modal-option-icon" style="background:#26a69a;">📜</div><div style="flex:1;">Cronologia partite</div><div class="mp-chev">›</div></div>' +
-      '<div class="modal-option" data-m="avatar"><div class="modal-option-icon" style="background:#2196f3;">🙂</div><div style="flex:1;">Avatar</div><div class="mp-av mini" data-avuid="' + esc(mp.uid || '') + '">👤</div></div>', { drawer: true });
+      mpSwitchRow('vib', 'Vibrazione', canVib ? '' : 'Non supportata da questo dispositivo', canVib && hapticsOn(), !canVib) +
+      mpSwitchRow('push', 'Notifiche', pushSub, !!mp.pushOn && !pushDis, pushDis) +
+      '<div class="modal-option" data-m="hist"><div style="flex:1;">Cronologia partite</div><div class="mp-chev">›</div></div>' +
+      '<div class="modal-option" data-m="avatar"><div style="flex:1;">Avatar</div><div class="mp-av mini" data-avuid="' + esc(mp.uid || '') + '">👤</div></div>', { drawer: true });
     mpMenuOpen = true;
     mpApplyAvatars();
     modalSheet.querySelectorAll('[data-m]').forEach(el => el.addEventListener('click', () => {
@@ -3980,7 +3991,7 @@
   }
 
   function mpShowHome() {
-    mpOpenAnimAbort();
+    mpAnimCleanup();
     mpCloseGameListener();
     closeModal();
     mp.inviteId = null;
@@ -4113,6 +4124,8 @@
   // poi la schermata di gioco compare: caselle dal centro verso i bordi, parole che cadono, rack che sale.
   let openAnim = null;
   const OPEN_FLY_MS = 2000;
+  const liveFlies = [];          // foto ancora in volo
+  let stageTimer = null;         // timer che toglie l'entrata animata della partita
   const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function mpAnimRel(el) {
@@ -4127,6 +4140,7 @@
     const app = document.getElementById('app'), cr = mpAnimRel(card);
     const appBg = getComputedStyle(app).backgroundColor;
     const st = { grown: false, ready: false, curtain: null, flies: [], timer: null, id: null };
+    if (!gamePushed) { gamePushed = true; navPush('g'); }   // il gesto indietro durante l'animazione riporta alla home (non esce dall'app)
 
     const curtain = document.createElement('div');
     curtain.className = 'open-curtain';
@@ -4159,8 +4173,8 @@
         { left: b.l + 'px', top: b.t + 'px', width: b.w + 'px', height: b.h + 'px', borderColor: ds.borderTopColor, borderWidth: ds.borderTopWidth }
       ], { duration: OPEN_FLY_MS, easing: 'cubic-bezier(.3,.6,.3,1)', fill: 'forwards' });
       const fl = { el: f, dst, anim };
-      anim.onfinish = () => { dst.style.visibility = ''; f.remove(); };
-      st.flies.push(fl);
+      anim.onfinish = () => { dst.style.visibility = ''; f.remove(); const k = liveFlies.indexOf(fl); if (k >= 0) liveFlies.splice(k, 1); };
+      st.flies.push(fl); liveFlies.push(fl);
     });
     st.flyEnd = performance.now() + OPEN_FLY_MS;
     openAnim = st;
@@ -4180,16 +4194,34 @@
       const r = +c.dataset.row, k = +c.dataset.col;
       c.style.setProperty('--d', c.classList.contains('occupied') ? r * 26 + k * 5 : Math.round(Math.hypot(r - 7, k - 7) * 16));
     });
-    document.querySelectorAll('#rackSlots .rack-slot').forEach((s, k) => s.style.setProperty('--k', k));
+    document.querySelectorAll('#rackSlots .rack-slot').forEach((s, k) => { s.style.setProperty('--k', k); s.classList.add('si'); });
+    boardEl.querySelectorAll('.cell').forEach(c => c.classList.add('si'));
     app.classList.add('stage-in');
     haptic([12, 40, 12]);
+    st.flies.forEach(f => {                      // colore finale della cornice: verde se è il turno di quella persona, bianco altrimenti
+      try {
+        const ef = f.anim.effect, kf = ef.getKeyframes(), ds = getComputedStyle(f.dst);
+        kf[kf.length - 1].borderColor = ds.borderTopColor; ef.setKeyframes(kf);
+      } catch (e) { /* ignora */ }
+    });
     // la scheda si dissolve mentre le foto atterrano
     st.curtain.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, delay: 220, fill: 'forwards' }).onfinish = () => { st.curtain.remove(); };
-    setTimeout(() => { app.classList.remove('stage-in'); }, Math.max(2200, st.flyEnd - performance.now() + 150));
+    clearTimeout(stageTimer);
+    stageTimer = setTimeout(() => { app.classList.remove('stage-in'); }, Math.max(2200, st.flyEnd - performance.now() + 150));
     openAnim = null;
   }
 
   function mpOpenAnimReady() { if (openAnim) { openAnim.ready = true; mpOpenAnimMaybeReveal(); } }
+
+  // Chiude subito qualsiasi animazione di apertura ancora in corso (foto in volo, sipario, entrata a onda):
+  // serve quando si torna indietro prima che sia finita.
+  function mpAnimCleanup() {
+    clearTimeout(stageTimer);
+    document.getElementById('app').classList.remove('stage-in');
+    liveFlies.splice(0).forEach(f => { try { f.anim.cancel(); } catch (e) { /* ignora */ } f.el.remove(); f.dst.style.visibility = ''; });
+    document.querySelectorAll('.open-curtain, .open-fly').forEach(e => e.remove());
+    mpOpenAnimAbort();
+  }
 
   function mpOpenAnimAbort() {
     const st = openAnim; if (!st) return;
@@ -4398,7 +4430,10 @@
   }
 
   function mpBackToHome() {
-    if (reduceMotion() || openAnim) { mpGoHome(); return; }
+    notificationEl.classList.remove('show'); clearTimeout(notificationEl._timer);
+    const wasOpening = !!openAnim;                    // l'animazione di apertura non era ancora finita
+    mpAnimCleanup();                                  // foto in volo e entrata a onda non devono restare a metà
+    if (reduceMotion() || wasOpening) { mpGoHome(); return; }
     const layer = mpExitLayer();
     document.getElementById('app').appendChild(layer);
     mp.skipAnim = true;
