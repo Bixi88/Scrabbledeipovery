@@ -4193,6 +4193,7 @@
     clearTimeout(st.timer);
     const app = document.getElementById('app');
     if (mp.screen) mpHideScreen();
+    try { fitBoard(); } catch (e) { /* ignora */ }   // assesta subito il layout (--xp ecc.) prima di leggere dove atterrano le foto
     // ritardi a onda: caselle dal centro, tessere riga per riga, rack una alla volta
     boardEl.querySelectorAll('.cell').forEach(c => {
       const r = +c.dataset.row, k = +c.dataset.col;
@@ -4208,11 +4209,26 @@
         kf[kf.length - 1].borderColor = ds.borderTopColor; ef.setKeyframes(kf);
       } catch (e) { /* ignora */ }
     });
+    // il layout del gioco può ancora assestarsi dopo l'avvio del volo (fitBoard cambia l'altezza dei riquadri
+    // punteggio): riallineo la destinazione delle foto alla posizione reale, così non "scattano" all'arrivo
+    mpRetargetFlies(st.flies);
+    [120, 450, 900, 1500].forEach(ms => setTimeout(() => mpRetargetFlies(st.flies), ms));
     // la scheda si dissolve mentre le foto atterrano
     st.curtain.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, delay: 220, fill: 'forwards' }).onfinish = () => { st.curtain.remove(); };
     clearTimeout(stageTimer);
     stageTimer = setTimeout(() => { app.classList.remove('stage-in'); }, Math.max(2200, st.flyEnd - performance.now() + 150));
     openAnim = null;
+  }
+
+  function mpRetargetFlies(flies) {
+    flies.forEach(f => {
+      if (!f.el.isConnected) return;
+      try {
+        const b = mpAnimRel(f.dst), ef = f.anim.effect, kf = ef.getKeyframes(), last = kf[kf.length - 1];
+        last.left = b.l + 'px'; last.top = b.t + 'px'; last.width = b.w + 'px'; last.height = b.h + 'px';
+        ef.setKeyframes(kf);
+      } catch (e) { /* ignora */ }
+    });
   }
 
   function mpOpenAnimReady() { if (openAnim) { openAnim.ready = true; mpOpenAnimMaybeReveal(); } }
