@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SCRABBLEdeipovery</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4e9f5f">
@@ -56,7 +56,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 12px 14px 8px;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 8px;
       background: #4e9f5f;
       color: #fff;
       flex-shrink: 0;
@@ -702,12 +702,12 @@
     }
 
     @media (max-height: 700px) {
-      .header { padding-top: 8px; }
+      .header { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
       .player-side { min-height: calc(64px + var(--xp, 0px)); }
       .avatar { width: 46px; height: 46px; }
       .player-score { font-size: 1.7rem; }
       .title-area { padding: 8px 0 4px; }
-      .bottom-bar { padding-top: 22px; padding-bottom: 12px; }
+      .bottom-bar { padding-top: 22px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
     }
 
     /* ========== MODALI ========== */
