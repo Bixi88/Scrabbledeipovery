@@ -4485,6 +4485,17 @@
     return layer;
   }
 
+  // Da che lato è partito l'ultimo tocco: il gesto "indietro" di Android parte dal bordo, e la pagina
+  // riceve comunque il primo tocco prima che il sistema lo prenda in carico. Serve a scegliere la direzione.
+  const lastEdgeTouch = { side: 'left', t: 0 };
+  function noteTouchSide(x) {
+    const W = window.innerWidth;
+    lastEdgeTouch.side = x > W / 2 ? 'right' : 'left';
+    lastEdgeTouch.t = Date.now();
+  }
+  document.addEventListener('touchstart', (e) => { if (e.touches[0]) noteTouchSide(e.touches[0].clientX); }, { capture: true, passive: true });
+  document.addEventListener('pointerdown', (e) => { noteTouchSide(e.clientX); }, { capture: true, passive: true });
+
   function mpBackToHome() {
     notificationEl.classList.remove('show'); clearTimeout(notificationEl._timer);
     const wasOpening = !!openAnim;                    // l'animazione di apertura non era ancora finita
@@ -4496,7 +4507,11 @@
     try { mpGoHome(); } finally { mp.skipAnim = false; }
     haptic(8);
     const done = () => layer.remove();
-    layer.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-100%)' }],
+    // la schermata esce nella direzione dello swipe: dal bordo sinistro (dito verso destra) scivola a destra,
+    // dal bordo destro (dito verso sinistra) scivola a sinistra
+    const dir = (lastEdgeTouch.side === 'right' && Date.now() - lastEdgeTouch.t < 1500) ? -1 : 1;
+    layer.style.boxShadow = (dir > 0 ? '-8px' : '8px') + ' 0 22px rgba(0, 0, 0, 0.28)';
+    layer.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(' + (dir * 100) + '%)' }],
       { duration: 300, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' }).onfinish = done;
     setTimeout(done, 900);
   }
