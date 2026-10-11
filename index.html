@@ -2805,6 +2805,10 @@
         const ghost = document.createElement('div');
         ghost.className = 'fly-tile';
         ghost.textContent = t.letter;
+        // Parte invisibile e già sulla sua cella: senza questo, finché non scatta il
+        // proprio "delay" la tessera resta ferma nell'angolo in alto a sinistra (left/top: 0).
+        ghost.style.opacity = '0';
+        ghost.style.transform = `translate(${sx}px, ${sy}px) scale(1)`;
         layer.appendChild(ghost);
 
         const dx = tx - sx, dy = ty - sy;
