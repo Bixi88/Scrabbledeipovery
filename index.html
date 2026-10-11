@@ -536,7 +536,8 @@
     /* Le lettere "poggiano" sulla barra sotto: la sezione si sovrappone di 12px. */
     .rack-section {
       background: transparent;
-      padding: calc(12px + var(--xr, 0px)) 8px 0;
+      /* 20px ai lati: la prima/ultima tessera restano fuori dalla fascia del gesto "indietro" di Android */
+      padding: calc(12px + var(--xr, 0px)) 20px 0;
       margin-bottom: -12px;
       display: flex;
       flex-direction: column;
@@ -931,6 +932,8 @@
       display: none;
       flex-direction: column;
       overflow-y: auto;
+      touch-action: pan-y;            /* lo swipe orizzontale (menu che segue il dito) non viene "rubato" dal browser */
+      overscroll-behavior-x: none;
       color: #26401d;
     }
     .mp-top { background: #4e9f5f; color: #fff; padding: 18px 16px 14px; text-align: center; flex-shrink: 0; }
@@ -3919,21 +3922,54 @@
     mpScreenEl.scrollTop = 0;
   }
 
-  // Home: uno swipe orizzontale (da destra a sinistra o viceversa, non dal bordo estremo dove Android
-  // usa il gesto "indietro") apre il menu. Si chiude con swipe verso sinistra o toccando fuori.
+  // Home: uno swipe orizzontale da sinistra verso destra (non dal bordo estremo dove Android usa il
+  // gesto "indietro") apre il menu, che segue il dito esattamente come quando lo si chiude con lo
+  // swipe inverso: sfondo che si scurisce in proporzione, rilascio che completa o rimbalza.
   (function () {
     let sw = null;
     mpScreenEl.addEventListener('touchstart', (e) => {
       if (mp.screen !== 'home' || modalOverlay.style.display !== 'none' || e.touches.length !== 1) { sw = null; return; }
-      const t = e.touches[0]; sw = { x: t.clientX, y: t.clientY };
+      const t = e.touches[0]; sw = { x: t.clientX, y: t.clientY, t: Date.now(), drag: false, size: 0 };
     }, { passive: true });
-    mpScreenEl.addEventListener('touchend', (e) => {
+    mpScreenEl.addEventListener('touchmove', (e) => {
       if (!sw) return;
-      const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y, W = window.innerWidth;
-      const okStart = sw.x > 24 && sw.x < W - 24;
-      sw = null;
-      if (okStart && dx > 70 && dx > Math.abs(dy) * 1.8) { haptic(10); mpOpenMenu(); }   // solo da sinistra verso destra
-    }, { passive: true });
+      const t = e.touches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y, W = window.innerWidth;
+      if (!sw.drag) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        const okStart = sw.x > 24 && sw.x < W - 24;
+        if (!(okStart && dx > 0 && dx > Math.abs(dy) * 1.5)) { sw = null; return; }
+        // parte il trascinamento: il cassetto nasce già fuori schermo, senza la sua animazione automatica
+        sw.drag = true;
+        haptic(10); mpOpenMenu();
+        modalSheet.style.animation = 'none'; modalOverlay.style.animation = 'none';
+        modalSheet.style.transition = 'none'; modalOverlay.style.transition = 'none';
+        sw.size = modalSheet.offsetWidth || 300;
+      }
+      if (e.cancelable) e.preventDefault();
+      sw.dx = dx;
+      const off = Math.min(0, Math.max(-sw.size, -sw.size + dx));
+      modalSheet.style.transform = 'translateX(' + off + 'px)';
+      setScrim(Math.max(0.05, 1 - Math.abs(off) / sw.size));
+    }, { passive: false });
+    function end(e) {
+      if (!sw) return;
+      const g = sw; sw = null;
+      if (!g.drag) {
+        // tocco senza trascinamento: nessun gesto
+        return;
+      }
+      const dx = (e.type === 'touchend' && e.changedTouches[0]) ? e.changedTouches[0].clientX - g.x : (g.dx || 0);   // su touchcancel vale l'ultima posizione nota
+      const v = dx / Math.max(1, Date.now() - g.t);                    // px/ms
+      if (dx > Math.min(110, g.size * 0.3) || (v > 0.55 && dx > 30)) {  // completa l'apertura
+        modalSheet.style.transition = 'transform 0.22s cubic-bezier(.2,.8,.2,1)'; modalOverlay.style.transition = SCRIM_TRANSITION;
+        modalSheet.style.transform = 'translateX(0px)'; setScrim(1);
+        setTimeout(() => { if (!modalClosing) { modalSheet.style.transition = ''; modalSheet.style.transform = ''; } }, 240);
+      } else {                                                         // non abbastanza: si richiude
+        dismissModal();
+      }
+    }
+    mpScreenEl.addEventListener('touchend', end, { passive: true });
+    mpScreenEl.addEventListener('touchcancel', end, { passive: true });
   })();
 
   function mpHideScreen() {
