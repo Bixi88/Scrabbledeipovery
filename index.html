@@ -1049,6 +1049,13 @@
     .modal-option.disabled { opacity: 0.55; }
     .mp-opt-sub { font-size: 0.75rem; color: #6b7b68; font-weight: 500; margin-top: 2px; }
     .mp-chev { color: #8a9a86; font-size: 1.5rem; line-height: 1; }
+    .modal-option { min-height: 58px; box-sizing: border-box; }
+    .modal-option.opt { box-shadow: inset 5px 0 0 #4e9f5f; padding-left: 19px; }
+    .modal-option.opt.danger { box-shadow: inset 5px 0 0 #d9534f; }
+    .opt-label { font-size: 1rem; }
+    .opt-label.danger { color: #b3261e; }
+    .opt-go { width: 30px; height: 30px; border-radius: 50%; background: #e3ede0; color: #4e9f5f; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; line-height: 1; padding-bottom: 2px; flex-shrink: 0; font-weight: 800; }
+    .opt-group { padding: 9px 16px 7px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #4e9f5f; background: #f3f7f1; border-bottom: 1px solid #e3eadf; }
     .modal-header .modal-back {
       position: absolute; left: 14px; top: 10px; width: 26px; height: 26px; border-radius: 50%;
       background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
@@ -1667,50 +1674,34 @@
     modalSheet.addEventListener('touchcancel', end, { passive: true });
   })();
 
+  // Riga di menu condivisa tra Opzioni e Menu: barra colorata a sinistra, titolo, descrizione, freccia.
+  function optRow(attrs, label, sub, o) {
+    o = o || {};
+    return '<div class="modal-option opt' + (o.danger ? ' danger' : '') + '" ' + attrs + '>' +
+      '<div class="opt-label' + (o.danger ? ' danger' : '') + '" style="flex:1;min-width:0;">' + label +
+        (sub ? '<div class="mp-opt-sub">' + sub + '</div>' : '') + '</div>' +
+      (o.chev ? '<div class="opt-go">›</div>' : '') + '</div>';
+  }
+  function optGroup(t) { return '<div class="opt-group">' + t + '</div>'; }
+
   function openOptionsModal() {
-    openModal(`
-      <div class="modal-header">Opzioni</div>
-      <div class="modal-option" data-action="bag">
-        <div class="modal-option-icon" style="background:#2196f3;">💰</div>
-        Sacchetto delle tessere (rimanenti: ${bag.length})
-      </div>
-      <div class="modal-option" data-action="howto">
-        <div class="modal-option-icon" style="background:#ffb300;">❓</div>
-        Come si gioca
-      </div>
-      ${MP_ENABLED ? `
-      <div class="modal-option" data-action="addword">
-        <div class="modal-option-icon" style="background:#5c6bc0;">📖</div>
-        Aggiungi parola al dizionario
-      </div>` : ''}
-      <div class="modal-option" data-action="skip">
-        <div class="modal-option-icon" style="background:#7e57c2;">▶</div>
-        Passa il turno
-      </div>
-      <div class="modal-option" data-action="swap">
-        <div class="modal-option-icon" style="background:#29b6f6;">🔁</div>
-        Scambio tessera
-      </div>
-      ${gameMode === 'mp' ? `
-      <div class="modal-option" data-action="history">
-        <div class="modal-option-icon" style="background:#26a69a;">📜</div>
-        Cronologia mosse
-      </div>
-      ${mp.game && mp.game.status === 'active' ? `
-      <div class="modal-option" data-action="resign">
-        <div class="modal-option-icon" style="background:#e53935;">🏳</div>
-        Arrenditi
-      </div>` : ''}` : `
-      <div class="modal-option" data-action="newgame">
-        <div class="modal-option-icon" style="background:#e53935;">🚩</div>
-        Nuova partita
-      </div>`}
-      ${MP_ENABLED ? `
-      <div class="modal-option" data-action="home">
-        <div class="modal-option-icon" style="background:#4e9f5f;">☰</div>
-        Elenco partite
-      </div>` : ''}
-    `);
+    const row = (action, label, sub, o) => optRow('data-action="' + action + '"', label, sub, o);
+    openModal(
+      '<div class="modal-header">Opzioni</div>' +
+      optGroup('Strumenti') +
+      row('bag', 'Sacchetto delle tessere', 'Rimanenti: ' + bag.length, { chev: true }) +
+      row('howto', 'Come si gioca', 'Rileggi le regole', { chev: true }) +
+      (MP_ENABLED ? row('addword', 'Aggiungi parola al dizionario', 'Vale subito per tutti i giocatori', { chev: true }) : '') +
+      (gameMode === 'mp' ? row('history', 'Cronologia mosse', 'Tutte le mosse della partita', { chev: true }) : '') +
+      optGroup('La tua mossa') +
+      row('skip', 'Passa il turno', 'Rinuncia alla mossa') +
+      row('swap', 'Scambio tessera', 'Cambia le tessere sul leggio') +
+      optGroup('Partita') +
+      (gameMode === 'mp'
+        ? (mp.game && mp.game.status === 'active' ? row('resign', 'Arrenditi', 'Termina la partita', { danger: true }) : '')
+        : row('newgame', 'Nuova partita', 'Quella in corso andrà persa', { danger: true })) +
+      (MP_ENABLED ? row('home', 'Elenco partite', 'Torna alle tue partite') : '')
+    );
     modalSheet.querySelectorAll('.modal-option').forEach(el => {
       el.addEventListener('click', () => {
         const action = el.dataset.action;
@@ -3771,8 +3762,8 @@
 
   // ---------- menu ----------
   function mpSwitchRow(m, label, sub, on, disabled) {
-    return '<div class="modal-option' + (disabled ? ' disabled' : '') + '" data-m="' + m + '">' +
-      '<div style="flex:1;min-width:0;">' + label + (sub ? '<div class="mp-opt-sub">' + sub + '</div>' : '') + '</div>' +
+    return '<div class="modal-option opt' + (disabled ? ' disabled' : '') + '" data-m="' + m + '">' +
+      '<div class="opt-label" style="flex:1;min-width:0;">' + label + (sub ? '<div class="mp-opt-sub">' + sub + '</div>' : '') + '</div>' +
       '<div class="mp-switch' + (on ? ' on' : '') + '"></div></div>';
   }
   function mpRefreshAfterPush() {
@@ -3786,11 +3777,13 @@
     else if (pushIosNeedsInstall()) { pushDis = true; pushSub = 'Su iPhone: Condividi → Aggiungi alla schermata Home'; }
     else if (Notification.permission === 'denied') { pushDis = true; pushSub = 'Bloccate: riattivale dalle impostazioni del browser'; }
     openModal('<div class="modal-header">Menu</div>' +
+      optGroup('Preferenze') +
       mpSwitchRow('vib', 'Vibrazione', canVib ? '' : 'Non supportata da questo dispositivo', canVib && hapticsOn(), !canVib) +
       mpSwitchRow('push', 'Notifiche', pushSub, !!mp.pushOn && !pushDis, pushDis) +
-      '<div class="modal-option" data-m="hist"><div style="flex:1;">Cronologia partite</div><div class="mp-chev">›</div></div>' +
-      '<div class="modal-option" data-m="addword"><div style="flex:1;">Aggiungi parola al dizionario</div><div class="mp-chev">›</div></div>' +
-      '<div class="modal-option" data-m="avatar"><div style="flex:1;">Avatar</div><div class="mp-av mini" data-avuid="' + esc(mp.uid || '') + '">👤</div></div>', { drawer: true });
+      '<div class="modal-option opt" data-m="avatar"><div class="opt-label" style="flex:1;min-width:0;">Avatar<div class="mp-opt-sub">Cambia la tua foto profilo</div></div><div class="mp-av mini" data-avuid="' + esc(mp.uid || '') + '">👤</div></div>' +
+      optGroup('Gioco') +
+      optRow('data-m="hist"', 'Cronologia partite', 'Le partite giocate', { chev: true }) +
+      optRow('data-m="addword"', 'Aggiungi parola al dizionario', 'Vale subito per tutti i giocatori', { chev: true }), { drawer: true });
     mpMenuOpen = true;
     mpApplyAvatars();
     modalSheet.querySelectorAll('[data-m]').forEach(el => el.addEventListener('click', () => {
