@@ -961,6 +961,15 @@
     .mp-code-input { text-align: center; letter-spacing: 0.3em; font-weight: 800; text-transform: uppercase; }
     .mp-code { font-size: 2.2rem; font-weight: 900; letter-spacing: 0.25em; text-align: center; user-select: text; -webkit-user-select: text; }
     .mp-link { word-break: break-all; font-size: 0.85rem; background: #fff; padding: 10px; border-radius: 10px; user-select: text; -webkit-user-select: text; }
+    .sd-panel { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .sd-input { text-align: center; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 800; }
+    .sd-msg { border-radius: 10px; padding: 10px 12px; font-size: 0.85rem; font-weight: 700; line-height: 1.35; }
+    .sd-msg.ok { background: #e3f2e1; color: #2e6b34; }
+    .sd-msg.info { background: #eef3ec; color: #4b5a48; }
+    .sd-msg.err { background: #fdecea; color: #b3261e; }
+    .sd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .sd-chip { background: #eef3ec; color: #26401d; border-radius: 10px; padding: 5px 10px; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 0 2px 0 #c5d2c2; }
+    .sd-chip.more { background: transparent; box-shadow: none; color: #6b7b68; }
     .mp-section-title { font-weight: 800; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: #3a5a3a; margin: 8px 2px -4px; }
     .mp-row {
       background: #fff; border-radius: 14px; padding: 12px 14px;
@@ -1669,6 +1678,11 @@
         <div class="modal-option-icon" style="background:#ffb300;">❓</div>
         Come si gioca
       </div>
+      ${MP_ENABLED ? `
+      <div class="modal-option" data-action="addword">
+        <div class="modal-option-icon" style="background:#5c6bc0;">📖</div>
+        Aggiungi parola al dizionario
+      </div>` : ''}
       <div class="modal-option" data-action="skip">
         <div class="modal-option-icon" style="background:#7e57c2;">▶</div>
         Passa il turno
@@ -1702,6 +1716,7 @@
         const action = el.dataset.action;
         if (action === 'bag') { openBagModal(); }
         else if (action === 'howto') { openHowToModal(); }
+        else if (action === 'addword') { openAddWordPanel(true); }
         else if (action === 'skip') { closeModal(); skipTurn(); }
         else if (action === 'swap') { closeModal(); toggleSwapMode(); }
         else if (action === 'history') { mpOpenHistory(); }
@@ -3774,6 +3789,7 @@
       mpSwitchRow('vib', 'Vibrazione', canVib ? '' : 'Non supportata da questo dispositivo', canVib && hapticsOn(), !canVib) +
       mpSwitchRow('push', 'Notifiche', pushSub, !!mp.pushOn && !pushDis, pushDis) +
       '<div class="modal-option" data-m="hist"><div style="flex:1;">Cronologia partite</div><div class="mp-chev">›</div></div>' +
+      '<div class="modal-option" data-m="addword"><div style="flex:1;">Aggiungi parola al dizionario</div><div class="mp-chev">›</div></div>' +
       '<div class="modal-option" data-m="avatar"><div style="flex:1;">Avatar</div><div class="mp-av mini" data-avuid="' + esc(mp.uid || '') + '">👤</div></div>', { drawer: true });
     mpMenuOpen = true;
     mpApplyAvatars();
@@ -3790,6 +3806,7 @@
       }
       else if (m === 'hist') mpOpenGamesHistory();
       else if (m === 'avatar') mpOpenAvatar();
+      else if (m === 'addword') openAddWordPanel(false);
     }));
   }
 
@@ -4973,6 +4990,169 @@
     openModal('<div class="modal-header">Cronologia mosse</div>' + rows + footer);
   }
 
+
+  // ==================== DIZIONARIO CONDIVISO ONLINE ====================
+  // Parole aggiunte a mano dal menu (Opzioni / Menu → "Aggiungi parola al dizionario").
+  // Stanno in UN documento Firestore (dizionario/extra, campo "parole") e si sommano a
+  // dizionario.txt e dizionario2.txt: ogni giocatore le scarica all'avvio e quando torna
+  // sull'app, quindi valgono per tutti SENZA passare da GitHub.
+  // Niente cache locale: la lista vive solo in memoria (sharedWords) e si legge/scrive
+  // direttamente via REST, senza passare dalla cache offline dell'SDK Firebase.
+  // Richiede le regole Firestore per "dizionario" (vedi istruzioni).
+  const SD_DOCS = 'https://firestore.googleapis.com/v1/projects/' + FIREBASE_CONFIG.projectId + '/databases/(default)/documents';
+  const SD_DOC_PATH = 'dizionario/extra';
+  const SD_REFRESH_MS = 60000;
+  const sharedWords = new Set();
+  let sdLoadedAt = 0;
+
+  async function sdLoad() {
+    if (!MP_ENABLED || !navigator.onLine) return false;
+    try {
+      const r = await fetch(SD_DOCS + '/' + SD_DOC_PATH + '?key=' + encodeURIComponent(FIREBASE_CONFIG.apiKey), { cache: 'no-store' });
+      if (r.status === 404) { sdLoadedAt = Date.now(); return true; }     // ancora nessuna parola aggiunta
+      if (!r.ok) { console.warn('Dizionario condiviso: risposta', r.status); return false; }
+      const j = await r.json();
+      const vals = (j.fields && j.fields.parole && j.fields.parole.arrayValue && j.fields.parole.arrayValue.values) || [];
+      let added = 0;
+      for (const v of vals) {
+        const w = String(v && v.stringValue || '').trim().toLowerCase();
+        if (!/^[a-z]{2,15}$/.test(w)) continue;
+        sharedWords.add(w);
+        if (!ITALIAN_WORDS.has(w)) added++;
+        ITALIAN_WORDS.add(w);
+      }
+      sdLoadedAt = Date.now();
+      if (added > 0) console.log('Dizionario condiviso: +' + added + ' parole (totale ' + ITALIAN_WORDS.size + ').');
+      return true;
+    } catch (err) {
+      console.warn('Dizionario condiviso non caricato.', err);
+      return false;
+    }
+  }
+
+  // Controlla la parola scritta dall'utente. Ritorna null se va bene, altrimenti { text, kind }.
+  function sdCheck(w) {
+    if (!w) return { text: 'Scrivi una parola.', kind: 'err' };
+    if (!/^[a-z]+$/.test(w)) return { text: 'Solo lettere, senza spazi, accenti, apostrofi o trattini.', kind: 'err' };
+    if (w.length < 2) return { text: 'Servono almeno 2 lettere.', kind: 'err' };
+    const bad = Array.from(new Set(w.toUpperCase().split('').filter(ch => !(ch in LETTER_VALUES))));
+    if (bad.length) return { text: 'Nel gioco non esistono le lettere ' + bad.join(', ') + ': questa parola non si potrebbe mai comporre.', kind: 'err' };
+    if (BANNED_WORDS.has(w)) return { text: '"' + w.toUpperCase() + '" è nell\'elenco delle parole vietate (dizionariosbagliato.txt) e verrebbe rifiutata comunque.', kind: 'err' };
+    if (ITALIAN_WORDS.has(w)) return { text: '"' + w.toUpperCase() + '" è già nel dizionario: non serve aggiungerla.', kind: 'info' };
+    return null;
+  }
+
+  // Aggiunge la parola al documento condiviso (append senza duplicati, gestito dal server).
+  async function sdSave(w) {
+    if (!mp.auth) await mpInit();
+    let user = mp.auth.currentUser;
+    if (!user) { const cred = await mp.FB.signInAnonymously(mp.auth); user = cred.user; mp.uid = mp.uid || user.uid; }
+    const token = await user.getIdToken();
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 15000);
+    let r;
+    try {
+      r = await fetch(SD_DOCS + ':commit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ writes: [{
+          update: { name: 'projects/' + FIREBASE_CONFIG.projectId + '/databases/(default)/documents/' + SD_DOC_PATH, fields: {} },
+          updateMask: { fieldPaths: [] },
+          updateTransforms: [{ fieldPath: 'parole', appendMissingElements: { values: [{ stringValue: w }] } }]
+        }] }),
+        cache: 'no-store',
+        signal: ctl.signal
+      });
+    } catch (e) {
+      throw mpErr(e && e.name === 'AbortError' ? 'timeout' : 'offline');
+    } finally { clearTimeout(timer); }
+    if (r.ok) return;
+    if (r.status === 403 || r.status === 401) throw mpErr('sd-denied');
+    console.warn('Dizionario condiviso: scrittura rifiutata', r.status, await r.text().catch(() => ''));
+    throw mpErr('sd-fail');
+  }
+
+  function sdErrText(e) {
+    const c = e && (e.mpCode || e.code);
+    if (c === 'sd-denied') return 'Il server ha rifiutato la scrittura: controlla che le regole Firestore per "dizionario" siano pubblicate.';
+    if (c === 'sd-fail') return 'Non sono riuscito a salvare la parola. Riprova tra poco.';
+    if (c === 'timeout') return 'Connessione lenta: la parola potrebbe non essere arrivata. Riprova.';
+    return mpErrText(e);
+  }
+
+  function sdRenderList() {
+    const t = document.getElementById('sdListTitle'), c = document.getElementById('sdChips'), b = document.getElementById('sdCopy');
+    if (!t || !c) return;
+    const list = Array.from(sharedWords).reverse();     // le più recenti per prime
+    t.textContent = list.length ? 'Aggiunte dall\'app (' + list.length + ')' : 'Nessuna parola aggiunta finora';
+    c.innerHTML = list.slice(0, 80).map(w => '<span class="sd-chip">' + esc(w) + '</span>').join('') +
+      (list.length > 80 ? '<span class="sd-chip more">+' + (list.length - 80) + ' altre</span>' : '');
+    if (b) b.style.display = list.length ? '' : 'none';
+  }
+
+  function sdMsg(text, kind) {
+    const el = document.getElementById('sdMsg');
+    if (el) el.innerHTML = text ? '<div class="sd-msg ' + kind + '">' + esc(text) + '</div>' : '';
+  }
+
+  function openAddWordPanel(fromGame) {
+    const back = fromGame ? openOptionsModal : mpOpenMenu;
+    if (!fromGame) mpMenuOpen = false;
+    openModal('<div class="modal-header"><div class="modal-back">‹</div>Aggiungi parola</div>' +
+      '<div class="sd-panel">' +
+        '<div class="mp-note">Le parole che aggiungi qui entrano subito nel dizionario di <b>tutti i giocatori</b>, senza passare da GitHub.</div>' +
+        '<input id="sdInput" class="mp-input sd-input" maxlength="15" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="PAROLA">' +
+        '<div id="sdMsg"></div>' +
+        '<button class="mp-btn" id="sdAdd">Aggiungi al dizionario</button>' +
+        '<div class="mp-section-title" id="sdListTitle"></div>' +
+        '<div class="sd-chips" id="sdChips"></div>' +
+        '<button class="mp-btn ghost" id="sdCopy" style="display:none;">📋 Copia elenco (una parola per riga)</button>' +
+      '</div>', fromGame ? undefined : { drawer: true });
+    modalSheet.querySelector('.modal-back').addEventListener('click', back);
+    const inp = document.getElementById('sdInput'), btn = document.getElementById('sdAdd');
+    sdRenderList();
+    sdLoad().then(ok => { if (ok) sdRenderList(); });      // così vedi anche le parole aggiunte da altri
+    inp.addEventListener('input', () => sdMsg('', ''));
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+    btn.addEventListener('click', submit);
+    document.getElementById('sdCopy').addEventListener('click', async () => {
+      const text = Array.from(sharedWords).sort().join('\n') + '\n';
+      try { await navigator.clipboard.writeText(text); showNotification('Elenco copiato', 1800); }
+      catch (e) {
+        const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); showNotification('Elenco copiato', 1800); } catch (e2) { showNotification('Copia non riuscita', 2000); }
+        ta.remove();
+      }
+    });
+
+    async function submit() {
+      if (btn.disabled) return;
+      const w = String(inp.value || '').trim().toLowerCase();
+      const problem = sdCheck(w);
+      if (problem) { sdMsg(problem.text, problem.kind); return; }
+      if (!navigator.onLine) { sdMsg('Serve la connessione: la parola deve arrivare a tutti, non resta solo sul tuo telefono.', 'err'); return; }
+      btn.disabled = true; btn.textContent = 'Aggiungo…';
+      try {
+        await sdSave(w);
+        sharedWords.add(w); ITALIAN_WORDS.add(w);
+        inp.value = '';
+        sdMsg('"' + w.toUpperCase() + '" aggiunta: da ora è valida per tutti.', 'ok');
+        sdRenderList();
+        haptic(15);
+      } catch (err) {
+        sdMsg(sdErrText(err), 'err');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Aggiungi al dizionario';
+        inp.focus();
+      }
+    }
+  }
+
+  // Aggiorna le parole condivise quando si torna sull'app (al massimo una volta al minuto).
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - sdLoadedAt > SD_REFRESH_MS) sdLoad();
+  });
+
   // ==================== EVENTI ====================
   playBtn.addEventListener('click', () => {
     if (gameMode === 'mp' && gameOver) { mpRun(mpRematch); return; }
@@ -4997,6 +5177,7 @@
   confirmSwapBtn.addEventListener('click', confirmSwap);
   swapCloseBtn.addEventListener('click', exitSwapMode);
 
+  sdLoad();   // parole aggiunte a mano dal menu, condivise tra tutti i giocatori
   mpBoot();   // senza configurazione Firebase parte direttamente la partita CPU, come prima
 
   if ('serviceWorker' in navigator) {
