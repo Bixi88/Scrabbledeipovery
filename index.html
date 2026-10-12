@@ -1478,6 +1478,7 @@
   let dragState = null;         // stato del trascinamento in corso (dal rack)
   let popKey = null;            // "riga,colonna" della tessera appena piazzata (per l'animazione)
   let mpMenuOpen = false;       // il menu iniziale è aperto (serve per aggiornarlo dopo le notifiche)
+  let modalBack = null;         // se il pannello aperto è un sottomenu: funzione che riporta al menu precedente (gesto indietro)
   let modalPushed = false;      // c'è una voce di cronologia per il pannello aperto (tasto/gesto indietro di Android)
   let gamePushed = false;       // idem per la schermata di partita
   let subPushed = false;        // idem per le schermate a pagina (nuova partita, codice invito)
@@ -1564,7 +1565,11 @@
   }
   window.addEventListener('popstate', () => {
     if (navIgnore > 0) { navIgnore--; return; }
-    if (modalPushed) { dismissModal(true); return; }                    // prima si chiude il pannello aperto
+    if (modalPushed) {
+      // sottomenu (es. Come si gioca dentro Opzioni): indietro torna al menu precedente, senza chiudere tutto.
+      if (modalBack && modalOverlay.style.display === 'flex' && !modalClosing) { navPush('m'); const f = modalBack; f(); return; }
+      dismissModal(true); return;                                       // altrimenti si chiude il pannello aperto
+    }
     if (subPushed) { subPushed = false; mpBackToHome(); return; }       // schermata a pagina: scorre via e sotto c'è la home
     if (gamePushed) { gamePushed = false; mpBackToHome(); return; }     // partita: idem
   });
@@ -1585,7 +1590,7 @@
   // Chiusura immediata (da codice)
   function closeModal() {
     clearTimeout(modalCloseTimer); modalClosing = false;
-    mpMenuOpen = false;
+    mpMenuOpen = false; modalBack = null;
     if (modalPushed) { modalPushed = false; navBack('m'); }
     modalOverlay.style.display = 'none';
     modalOverlay.classList.remove('drawer');
@@ -1615,6 +1620,7 @@
     const wasOpen = modalOverlay.style.display === 'flex';
     const sameKind = wasOpen && modalOverlay.classList.contains('drawer') === drawer;
     modalOpenedAt = Date.now();
+    modalBack = (opts && typeof opts.back === 'function') ? opts.back : null;
     resetModalStyles();
     modalOverlay.classList.toggle('drawer', drawer);
     modalSheet.innerHTML = html;
@@ -1705,7 +1711,7 @@
     modalSheet.querySelectorAll('.modal-option').forEach(el => {
       el.addEventListener('click', () => {
         const action = el.dataset.action;
-        if (action === 'bag') { openBagModal(); }
+        if (action === 'bag') { openBagModal(true); }
         else if (action === 'howto') { openHowToModal(); }
         else if (action === 'addword') { openAddWordPanel(true); }
         else if (action === 'skip') { closeModal(); skipTurn(); }
@@ -1721,7 +1727,7 @@
     });
   }
 
-  function openBagModal() {
+  function openBagModal(fromOptions) {
     const vowels = 'AEIOU';
     let vowelCount = 0, consCount = 0, blankCount = 0;
     const counts = {};
@@ -1740,7 +1746,7 @@
       <span class="letter">★</span><span class="count">${blankCount}</span>
     </div>`;
     openModal(`
-      <div class="modal-header">Sacchetto</div>
+      <div class="modal-header">${fromOptions ? '<div class="modal-back">‹</div>' : ''}Sacchetto</div>
       <div class="bag-modal-counts">
         <div class="bag-modal-count">👤 Tu: ${playerRack.length}</div>
         <div class="bag-modal-count">${gameMode === 'mp' ? '🙂 ' + esc(mp.oppName) : '🤖 CPU'}: ${cpuRack.length}</div>
@@ -1752,12 +1758,13 @@
         <span>Consonanti: ${consCount}</span>
         <span>Vuote: ${blankCount}</span>
       </div>
-    `);
+    `, fromOptions ? { back: openOptionsModal } : undefined);
+    if (fromOptions) modalSheet.querySelector('.modal-back').addEventListener('click', openOptionsModal);
   }
 
   function openHowToModal() {
     openModal(`
-      <div class="modal-header">Come si gioca</div>
+      <div class="modal-header"><div class="modal-back">‹</div>Come si gioca</div>
       <div class="howto-body">
         Forma parole sulla griglia incrociando le lettere già presenti.<br><br>
         La prima parola deve passare per la casella centrale ★.<br><br>
@@ -1767,7 +1774,8 @@
         Tocca una lettera nel rack per selezionarla, poi tocca la cella della board
         dove vuoi piazzarla. Quando la parola è pronta premi <b>Invia</b>.
       </div>
-    `);
+    `, { back: openOptionsModal });
+    modalSheet.querySelector('.modal-back').addEventListener('click', openOptionsModal);
   }
 
   function openBlankLetterPicker(callback, allowRecall) {
@@ -3631,7 +3639,7 @@
         '<button class="mp-btn" id="mpAvPick">📷 ' + (mpMyAv ? 'Cambia foto' : 'Carica una foto') + '</button>' +
         (mpMyAv ? '<button class="mp-btn ghost" id="mpAvDel" style="color:#8a2c2c;">🗑 Elimina foto</button>' : '') +
         '<input type="file" id="mpAvFile" accept="image/*" style="display:none;">' +
-      '</div>', { drawer: true });
+      '</div>', { drawer: true, back: mpOpenMenu });
     mpApplyAvatars();
     modalSheet.querySelector('.modal-back').addEventListener('click', mpOpenMenu);
     const file = document.getElementById('mpAvFile');
@@ -3702,6 +3710,7 @@
       stage.addEventListener('pointerup', endPtr);
       stage.addEventListener('pointercancel', endPtr);
       const back = () => { URL.revokeObjectURL(url); mpOpenAvatar(); };
+      modalBack = back;
       modalSheet.querySelector('.modal-back').addEventListener('click', back);
       document.getElementById('cropCancel').addEventListener('click', back);
       document.getElementById('cropOk').addEventListener('click', () => {
@@ -3756,7 +3765,7 @@
       '<span class="tx">' + esc(x.me) + ' ' + x.s[0] + ' – ' + x.s[1] + ' ' + esc(x.opp) + (x.end === 'resign' ? ' <small>· resa</small>' : '') + '</span>' +
       '<span class="ago">' + mpAgo(x.t) + '</span></div>').join('')
       : '<div class="howto-body">Nessuna partita conclusa ancora.</div>';
-    openModal('<div class="modal-header"><div class="modal-back">‹</div>Cronologia partite</div>' + rows, { drawer: true });
+    openModal('<div class="modal-header"><div class="modal-back">‹</div>Cronologia partite</div>' + rows, { drawer: true, back: mpOpenMenu });
     modalSheet.querySelector('.modal-back').addEventListener('click', mpOpenMenu);
   }
 
@@ -4980,7 +4989,8 @@
       const s = mp.slot;
       footer = '<div class="howto-body">Penalità tessere rimaste: tu −' + g.penalties[s] + ', ' + esc(mp.oppName) + ' −' + g.penalties[1 - s] + '.</div>';
     }
-    openModal('<div class="modal-header">Cronologia mosse</div>' + rows + footer);
+    openModal('<div class="modal-header"><div class="modal-back">‹</div>Cronologia mosse</div>' + rows + footer, { back: openOptionsModal });
+    modalSheet.querySelector('.modal-back').addEventListener('click', openOptionsModal);
   }
 
 
@@ -5100,7 +5110,7 @@
         '<div class="mp-section-title" id="sdListTitle"></div>' +
         '<div class="sd-chips" id="sdChips"></div>' +
         '<button class="mp-btn ghost" id="sdCopy" style="display:none;">📋 Copia elenco (una parola per riga)</button>' +
-      '</div>', fromGame ? undefined : { drawer: true });
+      '</div>', fromGame ? { back: back } : { drawer: true, back: back });
     modalSheet.querySelector('.modal-back').addEventListener('click', back);
     const inp = document.getElementById('sdInput'), btn = document.getElementById('sdAdd');
     sdRenderList();
@@ -5166,7 +5176,7 @@
   });
 
   document.getElementById('menuBtn').addEventListener('click', openOptionsModal);
-  bagBtn.addEventListener('click', openBagModal);
+  bagBtn.addEventListener('click', () => openBagModal());
   confirmSwapBtn.addEventListener('click', confirmSwap);
   swapCloseBtn.addEventListener('click', exitSwapMode);
 
