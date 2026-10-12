@@ -1055,7 +1055,6 @@
     .opt-label { font-size: 1rem; }
     .opt-label.danger { color: #b3261e; }
     .opt-go { width: 30px; height: 30px; border-radius: 50%; background: #e3ede0; color: #4e9f5f; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; line-height: 1; padding-bottom: 2px; flex-shrink: 0; font-weight: 800; }
-    .opt-group { padding: 9px 16px 7px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #4e9f5f; background: #f3f7f1; border-bottom: 1px solid #e3eadf; }
     .modal-header .modal-back {
       position: absolute; left: 14px; top: 10px; width: 26px; height: 26px; border-radius: 50%;
       background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;
@@ -1688,21 +1687,15 @@
         (sub ? '<div class="mp-opt-sub">' + sub + '</div>' : '') + '</div>' +
       (o.chev ? '<div class="opt-go">›</div>' : '') + '</div>';
   }
-  function optGroup(t) { return '<div class="opt-group">' + t + '</div>'; }
 
   function openOptionsModal() {
     const row = (action, label, sub, o) => optRow('data-action="' + action + '"', label, sub, o);
     openModal(
       '<div class="modal-header">Opzioni</div>' +
-      optGroup('Strumenti') +
       row('bag', 'Sacchetto delle tessere', 'Rimanenti: ' + bag.length, { chev: true }) +
-      row('howto', 'Come si gioca', 'Rileggi le regole', { chev: true }) +
       (MP_ENABLED ? row('addword', 'Aggiungi parola al dizionario', 'Vale subito per tutti i giocatori', { chev: true }) : '') +
       (gameMode === 'mp' ? row('history', 'Cronologia mosse', 'Tutte le mosse della partita', { chev: true }) : '') +
-      optGroup('La tua mossa') +
       row('skip', 'Passa il turno', 'Rinuncia alla mossa') +
-      row('swap', 'Scambio tessera', 'Cambia le tessere sul leggio') +
-      optGroup('Partita') +
       (gameMode === 'mp'
         ? (mp.game && mp.game.status === 'active' ? row('resign', 'Arrenditi', 'Termina la partita', { danger: true }) : '')
         : row('newgame', 'Nuova partita', 'Quella in corso andrà persa', { danger: true })) +
@@ -1712,10 +1705,8 @@
       el.addEventListener('click', () => {
         const action = el.dataset.action;
         if (action === 'bag') { openBagModal(true); }
-        else if (action === 'howto') { openHowToModal(); }
         else if (action === 'addword') { openAddWordPanel(true); }
         else if (action === 'skip') { closeModal(); skipTurn(); }
-        else if (action === 'swap') { closeModal(); toggleSwapMode(); }
         else if (action === 'history') { mpOpenHistory(); }
         else if (action === 'resign') { closeModal(); mpResign(); }
         else if (action === 'home') { closeModal(); mpBackToHome(); }
@@ -1760,22 +1751,6 @@
       </div>
     `, fromOptions ? { back: openOptionsModal } : undefined);
     if (fromOptions) modalSheet.querySelector('.modal-back').addEventListener('click', openOptionsModal);
-  }
-
-  function openHowToModal() {
-    openModal(`
-      <div class="modal-header"><div class="modal-back">‹</div>Come si gioca</div>
-      <div class="howto-body">
-        Forma parole sulla griglia incrociando le lettere già presenti.<br><br>
-        La prima parola deve passare per la casella centrale ★.<br><br>
-        Le caselle colorate raddoppiano o triplicano il valore di lettera (LD, LT)
-        o dell'intera parola (PD, PT).<br><br>
-        La tessera vuota (★) vale 0 punti e puoi farla diventare qualsiasi lettera.<br><br>
-        Tocca una lettera nel rack per selezionarla, poi tocca la cella della board
-        dove vuoi piazzarla. Quando la parola è pronta premi <b>Invia</b>.
-      </div>
-    `, { back: openOptionsModal });
-    modalSheet.querySelector('.modal-back').addEventListener('click', openOptionsModal);
   }
 
   function openBlankLetterPicker(callback, allowRecall) {
@@ -3786,11 +3761,9 @@
     else if (pushIosNeedsInstall()) { pushDis = true; pushSub = 'Su iPhone: Condividi → Aggiungi alla schermata Home'; }
     else if (Notification.permission === 'denied') { pushDis = true; pushSub = 'Bloccate: riattivale dalle impostazioni del browser'; }
     openModal('<div class="modal-header">Menu</div>' +
-      optGroup('Preferenze') +
       mpSwitchRow('vib', 'Vibrazione', canVib ? '' : 'Non supportata da questo dispositivo', canVib && hapticsOn(), !canVib) +
       mpSwitchRow('push', 'Notifiche', pushSub, !!mp.pushOn && !pushDis, pushDis) +
       '<div class="modal-option opt" data-m="avatar"><div class="opt-label" style="flex:1;min-width:0;">Avatar<div class="mp-opt-sub">Cambia la tua foto profilo</div></div><div class="mp-av mini" data-avuid="' + esc(mp.uid || '') + '">👤</div></div>' +
-      optGroup('Gioco') +
       optRow('data-m="hist"', 'Cronologia partite', 'Le partite giocate', { chev: true }) +
       optRow('data-m="addword"', 'Aggiungi parola al dizionario', 'Vale subito per tutti i giocatori', { chev: true }), { drawer: true });
     mpMenuOpen = true;
